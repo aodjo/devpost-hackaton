@@ -4,6 +4,7 @@ import {
   Animated,
   Image,
   Linking,
+  Modal,
   PanResponder,
   Platform,
   Pressable,
@@ -34,7 +35,8 @@ const OBSTACLE_CONFIG = {
 
 function ObstacleGalleryPanel({ styles, obstacles, isLoading, onClose, panelBottomClearance, t }) {
   const [currentIndex, setCurrentIndex] = useState(0)
-  const { width: screenWidth } = useWindowDimensions()
+  const [fullscreenImage, setFullscreenImage] = useState(null)
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const cardWidth = screenWidth - 24 - 32 // panel padding
 
   const handleScroll = (event) => {
@@ -54,6 +56,30 @@ function ObstacleGalleryPanel({ styles, obstacles, isLoading, onClose, panelBott
   }
 
   return (
+    <>
+    <Modal
+      visible={!!fullscreenImage}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setFullscreenImage(null)}
+    >
+      <Pressable
+        style={styles.fullscreenImageOverlay}
+        onPress={() => setFullscreenImage(null)}
+      >
+        <Image
+          source={{ uri: fullscreenImage }}
+          style={styles.fullscreenImage}
+          resizeMode="contain"
+        />
+        <Pressable
+          style={styles.fullscreenCloseButton}
+          onPress={() => setFullscreenImage(null)}
+        >
+          <MaterialIcons name="close" size={28} color="#fff" />
+        </Pressable>
+      </Pressable>
+    </Modal>
     <View style={[styles.obstacleInfoPanel, { bottom: panelBottomClearance }]}>
       <View style={styles.obstacleInfoPanelHeader}>
         <View style={styles.obstacleInfoPaginationContainer}>
@@ -100,7 +126,9 @@ function ObstacleGalleryPanel({ styles, obstacles, isLoading, onClose, panelBott
               <Text style={styles.obstacleInfoName}>{obs.name}</Text>
 
               {obs.imageUrl ? (
-                <Image source={{ uri: obs.imageUrl }} style={styles.obstacleInfoImage} />
+                <Pressable onPress={() => setFullscreenImage(obs.imageUrl)}>
+                  <Image source={{ uri: obs.imageUrl }} style={styles.obstacleInfoImage} />
+                </Pressable>
               ) : null}
 
               {obs.description ? (
@@ -124,6 +152,7 @@ function ObstacleGalleryPanel({ styles, obstacles, isLoading, onClose, panelBott
         })}
       </ScrollView>
     </View>
+    </>
   )
 }
 

@@ -191,6 +191,27 @@ export const styles = StyleSheet.create({
     flex: 1,
     maxHeight: 350,
   },
+  fullscreenImageOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenImage: {
+    width: '100%',
+    height: '100%',
+  },
+  fullscreenCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   obstacleInfoTypeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
