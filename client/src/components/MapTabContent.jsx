@@ -31,6 +31,101 @@ const OBSTACLE_CONFIG = {
   EV: { icon: 'door-open', color: '#10b981', bgColor: '#d1fae5', isFontAwesome: true },
 }
 
+function ObstacleGalleryPanel({ styles, obstacles, isLoading, onClose, panelBottomClearance, t }) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const { width: screenWidth } = useWindowDimensions()
+  const cardWidth = screenWidth - 24 - 32 // panel padding
+
+  const handleScroll = (event) => {
+    const offsetX = event.nativeEvent.contentOffset.x
+    const index = Math.round(offsetX / cardWidth)
+    setCurrentIndex(index)
+  }
+
+  if (isLoading) {
+    return (
+      <View style={[styles.obstacleInfoPanel, { bottom: panelBottomClearance }]}>
+        <View style={styles.obstacleInfoLoading}>
+          <ActivityIndicator size="small" color="#3b82f6" />
+        </View>
+      </View>
+    )
+  }
+
+  return (
+    <View style={[styles.obstacleInfoPanel, { bottom: panelBottomClearance }]}>
+      <View style={styles.obstacleInfoPanelHeader}>
+        <View style={styles.obstacleInfoPaginationContainer}>
+          {obstacles.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.obstacleInfoPaginationDot,
+                index === currentIndex && styles.obstacleInfoPaginationDotActive,
+              ]}
+            />
+          ))}
+        </View>
+        <Pressable style={styles.obstacleInfoCloseButton} onPress={onClose}>
+          <MaterialIcons name="close" size={20} color="#64748b" />
+        </Pressable>
+      </View>
+
+      <ScrollView
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        decelerationRate="fast"
+        snapToInterval={cardWidth}
+        snapToAlignment="start"
+        contentContainerStyle={{ paddingRight: 0 }}
+      >
+        {obstacles.map((obs) => {
+          const config = OBSTACLE_CONFIG[obs.type] || OBSTACLE_CONFIG.Stuff
+          return (
+            <ScrollView
+              key={obs.id}
+              style={[styles.obstacleInfoCard, { width: cardWidth }]}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
+              <View style={[styles.obstacleInfoTypeBadge, { backgroundColor: config.color }]}>
+                <FontAwesome5 name={config.icon} size={12} color="#fff" solid />
+                <Text style={styles.obstacleInfoTypeBadgeText}>{t(`report.types.${obs.type}`)}</Text>
+              </View>
+
+              <Text style={styles.obstacleInfoName}>{obs.name}</Text>
+
+              {obs.description ? (
+                <Text style={styles.obstacleInfoDescription}>{obs.description}</Text>
+              ) : null}
+
+              {obs.imageUrl ? (
+                <Image source={{ uri: obs.imageUrl }} style={styles.obstacleInfoImage} />
+              ) : null}
+
+              {obs.uploaderName ? (
+                <View style={styles.obstacleInfoUploader}>
+                  {obs.uploaderImage ? (
+                    <Image source={{ uri: obs.uploaderImage }} style={styles.obstacleInfoUploaderAvatar} />
+                  ) : (
+                    <View style={styles.obstacleInfoUploaderAvatarPlaceholder}>
+                      <MaterialIcons name="person" size={14} color="#94a3b8" />
+                    </View>
+                  )}
+                  <Text style={styles.obstacleInfoUploaderText}>{obs.uploaderName}</Text>
+                </View>
+              ) : null}
+            </ScrollView>
+          )
+        })}
+      </ScrollView>
+    </View>
+  )
+}
+
 function ProfilePanelContent({
   t,
   styles,
@@ -795,59 +890,14 @@ function MapTabContent({
 
       {/* Obstacle detail panel */}
       {selectedObstacle && Array.isArray(selectedObstacle) && selectedObstacle.length > 0 && isHomeTab ? (
-        <View style={[styles.obstacleInfoPanel, { bottom: panelBottomClearance, maxHeight: screenHeight * 0.5 }]}>
-          {isLoadingObstacle ? (
-            <View style={styles.obstacleInfoLoading}>
-              <ActivityIndicator size="small" color="#3b82f6" />
-            </View>
-          ) : (
-            <>
-              <View style={styles.obstacleInfoPanelHeader}>
-                <Text style={styles.obstacleInfoPanelTitle}>{t('report.type')} ({selectedObstacle.length})</Text>
-                <Pressable style={styles.obstacleInfoCloseButton} onPress={onCloseObstacle}>
-                  <MaterialIcons name="close" size={20} color="#64748b" />
-                </Pressable>
-              </View>
-              <ScrollView style={styles.obstacleInfoList} showsVerticalScrollIndicator={false}>
-                {selectedObstacle.map((obs, index) => {
-                  const config = OBSTACLE_CONFIG[obs.type] || OBSTACLE_CONFIG.Stuff
-                  return (
-                    <View key={obs.id} style={[styles.obstacleInfoItem, index < selectedObstacle.length - 1 && styles.obstacleInfoItemBorder]}>
-                      {/* Type badge */}
-                      <View style={[styles.obstacleInfoTypeBadge, { backgroundColor: config.color }]}>
-                        <FontAwesome5 name={config.icon} size={12} color="#fff" solid />
-                        <Text style={styles.obstacleInfoTypeBadgeText}>{t(`report.types.${obs.type}`)}</Text>
-                      </View>
-
-                      <Text style={styles.obstacleInfoName}>{obs.name}</Text>
-
-                      {obs.description ? (
-                        <Text style={styles.obstacleInfoDescription}>{obs.description}</Text>
-                      ) : null}
-
-                      {obs.imageUrl ? (
-                        <Image source={{ uri: obs.imageUrl }} style={styles.obstacleInfoImage} />
-                      ) : null}
-
-                      {obs.uploaderName ? (
-                        <View style={styles.obstacleInfoUploader}>
-                          {obs.uploaderImage ? (
-                            <Image source={{ uri: obs.uploaderImage }} style={styles.obstacleInfoUploaderAvatar} />
-                          ) : (
-                            <View style={styles.obstacleInfoUploaderAvatarPlaceholder}>
-                              <MaterialIcons name="person" size={14} color="#94a3b8" />
-                            </View>
-                          )}
-                          <Text style={styles.obstacleInfoUploaderText}>{obs.uploaderName}</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  )
-                })}
-              </ScrollView>
-            </>
-          )}
-        </View>
+        <ObstacleGalleryPanel
+          styles={styles}
+          obstacles={selectedObstacle}
+          isLoading={isLoadingObstacle}
+          onClose={onCloseObstacle}
+          panelBottomClearance={panelBottomClearance}
+          t={t}
+        />
       ) : null}
 
       {/* Floating "focus my location" button */}

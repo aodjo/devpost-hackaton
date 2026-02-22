@@ -172,21 +172,24 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  obstacleInfoPanelTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0f172a',
+  obstacleInfoPaginationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  obstacleInfoList: {
+  obstacleInfoPaginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#cbd5e1',
+  },
+  obstacleInfoPaginationDotActive: {
+    backgroundColor: '#3b82f6',
+    width: 20,
+  },
+  obstacleInfoCard: {
     flex: 1,
-  },
-  obstacleInfoItem: {
-    paddingBottom: 16,
-    marginBottom: 16,
-  },
-  obstacleInfoItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    maxHeight: 350,
   },
   obstacleInfoTypeBadge: {
     flexDirection: 'row',
