@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 
 from db import init_db
 from warning import router as warning_router
+from badge import router as badge_router
 
 load_dotenv(Path(__file__).with_name(".env"))
 
@@ -35,6 +36,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Google Tiles Proxy", lifespan=lifespan)
 
 app.include_router(warning_router)
+app.include_router(badge_router)
 
 _session_entries: dict[str, tuple[str, float]] = {}
 _session_locks: dict[str, asyncio.Lock] = {}
@@ -250,49 +252,6 @@ async def tile_proxy(
             "X-Tile-Region": tile_region,
         },
     )
-##-----------------------------------------주원이의 귀여운 배지 시스템---------------------
-from pydantic import BaseModel
-from typing import Dict, Set
-
-
-users: Dict[str, "User"] = {}
-
-
-class User:
-    def __init__(self, user_id: str):
-        self.user_id = user_id
-        self.obstacles_reported = 0
-        self.photos_uploaded = 0
-        self.verifications = 0
-        self.active_days: Set[str] = set()
-        self.badges: Set[str] = set()
-
-
-class BadgeEngine:
-    def evaluate(self, user: User):
-        if user.obstacles_reported >= 1:
-            user.badges.add("First Reporter")
-
-        if user.obstacles_reported >= 10:
-            user.badges.add("Explorer")
-
-        if user.photos_uploaded >= 5:
-            user.badges.add("Photo Contributor")
-
-        if user.verifications >= 10:
-            user.badges.add("Guardian")
-
-        if len(user.active_days) >= 7:
-            user.badges.add("Consistent Hero")
-
-        return list(user.badges)
-
-
-badge_engine = BadgeEngine()
-
-#-----------------------------------------------------------------------------
-
-
 if __name__ == "__main__":
     import uvicorn
 
