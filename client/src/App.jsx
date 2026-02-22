@@ -49,7 +49,6 @@ function App() {
   const [isPanelMinimized, setIsPanelMinimized] = useState(false)
   const [mapType, setMapType] = useState('roadmap')
   const [activeTab, setActiveTab] = useState(LABELS.home)
-  const [transitType, setTransitType] = useState('bus')
   const [placeQuery, setPlaceQuery] = useState('')
   const [originInput, setOriginInput] = useState('')
   const [destinationInput, setDestinationInput] = useState('')
@@ -73,49 +72,6 @@ function App() {
   const [bottomNavHeight, setBottomNavHeight] = useState(0)
   const [keyboardInset, setKeyboardInset] = useState(0)
   const [navIndicatorAnim] = useState(() => new Animated.Value(0))
-
-  const transitRoutes = [
-    {
-      id: '1',
-      type: 'bus',
-      routeName: '142번',
-      arrivalTime: '3분',
-      destinationArrival: '18분',
-      stops: '5정류장',
-    },
-    {
-      id: '2',
-      type: 'bus',
-      routeName: '405번',
-      arrivalTime: '8분',
-      destinationArrival: '22분',
-      stops: '7정류장',
-    },
-    {
-      id: '3',
-      type: 'bus',
-      routeName: '720번',
-      arrivalTime: '12분',
-      destinationArrival: '25분',
-      stops: '6정류장',
-    },
-    {
-      id: '4',
-      type: 'subway',
-      routeName: '2호선',
-      arrivalTime: '2분',
-      destinationArrival: '15분',
-      stops: '3역',
-    },
-    {
-      id: '5',
-      type: 'subway',
-      routeName: '6호선',
-      arrivalTime: '7분',
-      destinationArrival: '20분',
-      stops: '4역',
-    },
-  ]
 
   const tileUrlTemplate = useMemo(() => {
     const normalizedBase = `${TILE_PROXY_BASE_URL}`.replace(/\/+$/, '')
@@ -477,9 +433,6 @@ function App() {
             onTogglePanel={handleTogglePanel}
             panelBottomClearance={panelBottomClearance}
             isTransitTab={isTransitTab}
-            transitType={transitType}
-            setTransitType={setTransitType}
-            transitRoutes={transitRoutes}
             isNavigationTab={isNavigationTab}
             originRef={originRef}
             originInput={originInput}

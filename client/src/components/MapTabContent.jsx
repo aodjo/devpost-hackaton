@@ -53,9 +53,6 @@ function MapTabContent({
 
   // Transit panel
   isTransitTab,
-  transitType,
-  setTransitType,
-  transitRoutes,
 
   // Navigation panel
   isNavigationTab,
@@ -297,56 +294,7 @@ function MapTabContent({
           keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
         >
-          {/* Transit tab content */}
-          {isTransitTab ? (
-            <>
-              <View style={styles.transitButtonRow}>
-                <Pressable
-                  style={[styles.mapTypeButton, transitType === 'bus' && styles.mapTypeButtonActive]}
-                  onPress={() => setTransitType('bus')}
-                >
-                  <Text
-                    style={[styles.mapTypeButtonText, transitType === 'bus' && styles.mapTypeButtonTextActive]}
-                  >
-                    {labels.bus}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.mapTypeButton, transitType === 'subway' && styles.mapTypeButtonActive]}
-                  onPress={() => setTransitType('subway')}
-                >
-                  <Text
-                    style={[styles.mapTypeButtonText, transitType === 'subway' && styles.mapTypeButtonTextActive]}
-                  >
-                    {labels.subway}
-                  </Text>
-                </Pressable>
-              </View>
-
-              <View style={styles.transitCardsContainer}>
-                {transitRoutes
-                  .filter((route) => route.type === transitType)
-                  .map((route) => (
-                    <View key={route.id} style={styles.transitCard}>
-                      <View style={styles.transitCardHeader}>
-                        <Text style={styles.routeName}>{route.routeName}</Text>
-                        <Text style={styles.arrivalTime}>{route.arrivalTime}</Text>
-                      </View>
-                      <View style={styles.transitCardBody}>
-                        <View style={styles.transitInfo}>
-                          <Text style={styles.transitLabel}>도착 시간</Text>
-                          <Text style={styles.transitValue}>{route.destinationArrival}</Text>
-                        </View>
-                        <View style={styles.transitInfo}>
-                          <Text style={styles.transitLabel}>정거장 수</Text>
-                          <Text style={styles.transitValue}>{route.stops}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  ))}
-              </View>
-            </>
-          ) : null}
+          {/* Transit tab content - ScrollView 밖에서 처리 */}
 
           {/* Navigation tab content */}
           {isNavigationTab ? (
@@ -438,6 +386,25 @@ function MapTabContent({
           ) : null}
         </ScrollView>
 
+        {/* 대중교통 메시지 - 패널의 보이는 영역 기준으로 중앙 정렬 */}
+        {isTransitTab ? (
+          <View
+            style={{
+              position: 'absolute',
+              top: 32,
+              left: 0,
+              right: 0,
+              height: screenHeight - collapsedTranslateY - 32 - panelBottomClearance,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            pointerEvents="none"
+          >
+            <FontAwesome5 name="clock" size={44} color="#334155" />
+            <Text style={styles.transitUnavailableText}>시간 부족으로 개발되지 않았습니다</Text>
+          </View>
+        ) : null}
+
         {/* 내비게이션 힌트 - 패널의 보이는 영역 기준으로 중앙 정렬 */}
         {showNavigationHint ? (
           <View
@@ -479,4 +446,3 @@ function MapTabContent({
 }
 
 export default MapTabContent
-
