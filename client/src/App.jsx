@@ -34,6 +34,7 @@ const LABELS = {
   satellite: '\uC704\uC131',
   bus: '\uBC84\uC2A4',
   subway: '\uC9C0\uD558\ucca0',
+  placeSearchPlaceholder: '\uAC74\uBB3C, \uC7A5\uC18C \uAC80\uC0C9',
   originPlaceholder: '\uCD9C\uBC1C\uC9C0 \uC785\uB825',
   destinationPlaceholder: '\uBAA9\uC801\uC9C0 \uC785\uB825',
   search: '\uAC80\uC0C9',
@@ -77,11 +78,11 @@ function App() {
   const [mapType, setMapType] = useState('roadmap')
   const [activeTab, setActiveTab] = useState(LABELS.home)
   const [transitType, setTransitType] = useState('bus')
+  const [placeQuery, setPlaceQuery] = useState('')
   const [originInput, setOriginInput] = useState('')
   const [destinationInput, setDestinationInput] = useState('')
   const [currentLocation, setCurrentLocation] = useState(null)
   const [locationError, setLocationError] = useState('')
-  const [dividerCenterY, setDividerCenterY] = useState(null)
   const [bottomNavWidth, setBottomNavWidth] = useState(0)
   const [bottomNavHeight, setBottomNavHeight] = useState(0)
   const [navIndicatorAnim] = useState(() => new Animated.Value(0))
@@ -225,6 +226,12 @@ function App() {
     }
   }
 
+  const handlePlaceSearch = () => {
+    if (!placeQuery.trim()) {
+      return
+    }
+  }
+
   useEffect(() => {
     if (activeTab === LABELS.navigation) {
       originRef.current?.focus()
@@ -240,6 +247,7 @@ function App() {
     }
   }
 
+  const isHomeTab = activeTab === LABELS.home
   const isTransitTab = activeTab === LABELS.transit
   const isNavigationTab = activeTab === LABELS.navigation
   const isBottomPanelTab = isTransitTab || isNavigationTab
@@ -311,38 +319,20 @@ function App() {
         </MapView>
 
         <View style={styles.topPanel}>
-          {isNavigationTab ? null : (
+          {isHomeTab ? (
             <View style={styles.inputCard}>
               <TextInput
-                ref={originRef}
-                style={styles.input}
-                value={originInput}
-                onChangeText={setOriginInput}
-                placeholder={LABELS.originPlaceholder}
+                style={styles.homeInput}
+                value={placeQuery}
+                onChangeText={setPlaceQuery}
+                placeholder={LABELS.placeSearchPlaceholder}
                 placeholderTextColor="#94a3b8"
-              />
-              <View
-                style={styles.inputDivider}
-                onLayout={(event) => {
-                  const { y, height } = event.nativeEvent.layout
-                  setDividerCenterY(y + height / 2)
-                }}
-              />
-              <TextInput
-                style={styles.input}
-                value={destinationInput}
-                onChangeText={setDestinationInput}
-                placeholder={LABELS.destinationPlaceholder}
-                placeholderTextColor="#94a3b8"
+                returnKeyType="search"
+                onSubmitEditing={handlePlaceSearch}
               />
               <Pressable
-                style={[
-                  styles.searchButton,
-                  dividerCenterY == null
-                    ? styles.searchButtonFallback
-                    : { top: dividerCenterY - SEARCH_BUTTON_HEIGHT / 2 },
-                ]}
-                onPress={handleSearch}
+                style={styles.homeSearchButton}
+                onPress={handlePlaceSearch}
                 accessibilityRole="button"
                 accessibilityLabel={LABELS.search}
               >
@@ -350,7 +340,7 @@ function App() {
                 <Text style={styles.searchButtonText}>{LABELS.search}</Text>
               </Pressable>
             </View>
-          )}
+          ) : null}
 
           <Animated.View style={[styles.mapTypeRow, mapTypeRowAnimatedStyle]}>
             <Pressable
@@ -480,13 +470,7 @@ function App() {
                     placeholder={LABELS.originPlaceholder}
                     placeholderTextColor="#94a3b8"
                   />
-                  <View
-                    style={styles.inputDivider}
-                    onLayout={(event) => {
-                      const { y, height } = event.nativeEvent.layout
-                      setDividerCenterY(y + height / 2)
-                    }}
-                  />
+                  <View style={styles.inputDivider} />
                   <TextInput
                     style={styles.input}
                     value={destinationInput}
@@ -495,12 +479,7 @@ function App() {
                     placeholderTextColor="#94a3b8"
                   />
                   <Pressable
-                    style={[
-                      styles.searchButton,
-                      dividerCenterY == null
-                        ? styles.searchButtonFallback
-                        : { top: dividerCenterY - SEARCH_BUTTON_HEIGHT / 2 },
-                    ]}
+                    style={[styles.searchButton, styles.searchButtonCentered]}
                     onPress={handleSearch}
                     accessibilityRole="button"
                     accessibilityLabel={LABELS.search}
@@ -640,11 +619,12 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   inputCard: {
-    position: 'relative',
     backgroundColor: 'rgba(255,255,255,0.98)',
     borderRadius: 14,
     padding: 12,
-    gap: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     borderWidth: 1,
     borderColor: 'rgba(148, 163, 184, 0.28)',
     shadowColor: '#0f172a',
@@ -659,6 +639,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 8,
     paddingRight: 92,
+  },
+  homeInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#0f172a',
+    paddingHorizontal: 6,
+    paddingVertical: 8,
+  },
+  homeSearchButton: {
+    minWidth: 68,
+    height: SEARCH_BUTTON_HEIGHT,
+    borderRadius: 17,
+    backgroundColor: '#0f172a',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    shadowColor: '#020617',
+    shadowOpacity: 0.24,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
   },
   inputDivider: {
     height: 1,
@@ -682,14 +684,18 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 5,
   },
-  searchButtonFallback: {
-    top: 32,
+  searchButtonCentered: {
+    top: '50%',
+    marginTop: -(SEARCH_BUTTON_HEIGHT / 2),
   },
   searchButtonText: {
     color: '#f8fafc',
     fontSize: 12,
+    lineHeight: 14,
     fontWeight: '700',
     marginLeft: 4,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   mapTypeRow: {
     flexDirection: 'row',
