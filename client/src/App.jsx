@@ -385,36 +385,48 @@ function App() {
 
     setIsLoadingObstacle(true)
     try {
-      // 첫 번째 ID의 상세 정보 가져오기
-      const placeId = obstacle.ids[0]
-      const response = await fetch(`${API_BASE_URL}/warning/get_place/${placeId}`)
-      const data = await response.json()
-
-      if (data.place) {
-        let uploaderName = null
-        let uploaderImage = null
-
-        // 업로더 정보 가져오기
-        if (data.place.user_id) {
+      // 모든 장애물 정보 가져오기
+      const obstacleDetails = await Promise.all(
+        obstacle.ids.map(async (placeId) => {
           try {
-            const userResponse = await fetch(`${API_BASE_URL}/badge/user/${data.place.user_id}`)
-            const userData = await userResponse.json()
-            if (userData.user) {
-              uploaderName = userData.user.username
-              uploaderImage = userData.user.profile_image
-            }
-          } catch {
-            // Ignore user fetch errors
-          }
-        }
+            const response = await fetch(`${API_BASE_URL}/warning/get_place/${placeId}`)
+            const data = await response.json()
 
-        setSelectedObstacle({
-          ...data.place,
-          imageUrl: data.place.has_image ? `${API_BASE_URL}/warning/get_place_img/${placeId}` : null,
-          totalCount: obstacle.ids.length,
-          uploaderName,
-          uploaderImage,
+            if (data.place) {
+              let uploaderName = null
+              let uploaderImage = null
+
+              // 업로더 정보 가져오기
+              if (data.place.user_id) {
+                try {
+                  const userResponse = await fetch(`${API_BASE_URL}/badge/user/${data.place.user_id}`)
+                  const userData = await userResponse.json()
+                  if (userData.user) {
+                    uploaderName = userData.user.username
+                    uploaderImage = userData.user.profile_image
+                  }
+                } catch {
+                  // Ignore user fetch errors
+                }
+              }
+
+              return {
+                ...data.place,
+                imageUrl: data.place.has_image ? `${API_BASE_URL}/warning/get_place_img/${placeId}` : null,
+                uploaderName,
+                uploaderImage,
+              }
+            }
+            return null
+          } catch {
+            return null
+          }
         })
+      )
+
+      const validObstacles = obstacleDetails.filter(Boolean)
+      if (validObstacles.length > 0) {
+        setSelectedObstacle(validObstacles)
       }
     } catch {
       // Ignore errors

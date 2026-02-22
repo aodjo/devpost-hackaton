@@ -166,6 +166,28 @@ export const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
   },
+  obstacleInfoPanelHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  obstacleInfoPanelTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  obstacleInfoList: {
+    flex: 1,
+  },
+  obstacleInfoItem: {
+    paddingBottom: 16,
+    marginBottom: 16,
+  },
+  obstacleInfoItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
   obstacleInfoTypeBadge: {
     flexDirection: 'row',
     alignItems: 'center',

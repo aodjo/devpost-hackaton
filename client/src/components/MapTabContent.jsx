@@ -794,47 +794,57 @@ function MapTabContent({
       ) : null}
 
       {/* Obstacle detail panel */}
-      {selectedObstacle && isHomeTab ? (
-        <View style={[styles.obstacleInfoPanel, { bottom: panelBottomClearance }]}>
+      {selectedObstacle && Array.isArray(selectedObstacle) && selectedObstacle.length > 0 && isHomeTab ? (
+        <View style={[styles.obstacleInfoPanel, { bottom: panelBottomClearance, maxHeight: screenHeight * 0.5 }]}>
           {isLoadingObstacle ? (
             <View style={styles.obstacleInfoLoading}>
               <ActivityIndicator size="small" color="#3b82f6" />
             </View>
           ) : (
             <>
-              {/* Type badge */}
-              <View style={[styles.obstacleInfoTypeBadge, { backgroundColor: OBSTACLE_CONFIG[selectedObstacle.type]?.color || '#f59e0b' }]}>
-                <FontAwesome5 name={OBSTACLE_CONFIG[selectedObstacle.type]?.icon || 'exclamation-triangle'} size={12} color="#fff" solid />
-                <Text style={styles.obstacleInfoTypeBadgeText}>{t(`report.types.${selectedObstacle.type}`)}</Text>
-              </View>
-
-              <View style={styles.obstacleInfoHeader}>
-                <Text style={styles.obstacleInfoName}>{selectedObstacle.name}</Text>
+              <View style={styles.obstacleInfoPanelHeader}>
+                <Text style={styles.obstacleInfoPanelTitle}>{t('report.type')} ({selectedObstacle.length})</Text>
                 <Pressable style={styles.obstacleInfoCloseButton} onPress={onCloseObstacle}>
                   <MaterialIcons name="close" size={20} color="#64748b" />
                 </Pressable>
               </View>
+              <ScrollView style={styles.obstacleInfoList} showsVerticalScrollIndicator={false}>
+                {selectedObstacle.map((obs, index) => {
+                  const config = OBSTACLE_CONFIG[obs.type] || OBSTACLE_CONFIG.Stuff
+                  return (
+                    <View key={obs.id} style={[styles.obstacleInfoItem, index < selectedObstacle.length - 1 && styles.obstacleInfoItemBorder]}>
+                      {/* Type badge */}
+                      <View style={[styles.obstacleInfoTypeBadge, { backgroundColor: config.color }]}>
+                        <FontAwesome5 name={config.icon} size={12} color="#fff" solid />
+                        <Text style={styles.obstacleInfoTypeBadgeText}>{t(`report.types.${obs.type}`)}</Text>
+                      </View>
 
-              {selectedObstacle.description ? (
-                <Text style={styles.obstacleInfoDescription}>{selectedObstacle.description}</Text>
-              ) : null}
+                      <Text style={styles.obstacleInfoName}>{obs.name}</Text>
 
-              {selectedObstacle.imageUrl ? (
-                <Image source={{ uri: selectedObstacle.imageUrl }} style={styles.obstacleInfoImage} />
-              ) : null}
+                      {obs.description ? (
+                        <Text style={styles.obstacleInfoDescription}>{obs.description}</Text>
+                      ) : null}
 
-              {selectedObstacle.uploaderName ? (
-                <View style={styles.obstacleInfoUploader}>
-                  {selectedObstacle.uploaderImage ? (
-                    <Image source={{ uri: selectedObstacle.uploaderImage }} style={styles.obstacleInfoUploaderAvatar} />
-                  ) : (
-                    <View style={styles.obstacleInfoUploaderAvatarPlaceholder}>
-                      <MaterialIcons name="person" size={14} color="#94a3b8" />
+                      {obs.imageUrl ? (
+                        <Image source={{ uri: obs.imageUrl }} style={styles.obstacleInfoImage} />
+                      ) : null}
+
+                      {obs.uploaderName ? (
+                        <View style={styles.obstacleInfoUploader}>
+                          {obs.uploaderImage ? (
+                            <Image source={{ uri: obs.uploaderImage }} style={styles.obstacleInfoUploaderAvatar} />
+                          ) : (
+                            <View style={styles.obstacleInfoUploaderAvatarPlaceholder}>
+                              <MaterialIcons name="person" size={14} color="#94a3b8" />
+                            </View>
+                          )}
+                          <Text style={styles.obstacleInfoUploaderText}>{obs.uploaderName}</Text>
+                        </View>
+                      ) : null}
                     </View>
-                  )}
-                  <Text style={styles.obstacleInfoUploaderText}>{selectedObstacle.uploaderName}</Text>
-                </View>
-              ) : null}
+                  )
+                })}
+              </ScrollView>
             </>
           )}
         </View>
