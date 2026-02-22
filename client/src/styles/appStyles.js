@@ -416,7 +416,7 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 14,
     fontWeight: '700',
-    marginLeft: 4,
+    marginLeft: 0,
     includeFontPadding: false,
     textAlignVertical: 'center',
   },
@@ -724,6 +724,9 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+  },
+  navigationStartButtonActive: {
+    backgroundColor: '#16a34a',
   },
   navigationStartButtonText: {
     color: '#f8fafc',
@@ -1516,6 +1519,22 @@ export const styles = StyleSheet.create({
   // Navigation Autocomplete styles
   inputWithAutocomplete: {
     position: 'relative',
+    zIndex: 1,
+  },
+  inputWithAutocompleteActive: {
+    zIndex: 20,
+    elevation: 20,
+  },
+  navigationInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  navigationInputIcon: {
+    marginLeft: 6,
+  },
+  navigationInputText: {
+    flex: 1,
   },
   navAutocompleteDropdown: {
     position: 'absolute',
@@ -1534,6 +1553,7 @@ export const styles = StyleSheet.create({
     elevation: 8,
     zIndex: 100,
     maxHeight: 180,
+    overflow: 'hidden',
   },
   navAutocompleteItem: {
     flexDirection: 'row',
@@ -1546,11 +1566,13 @@ export const styles = StyleSheet.create({
   },
   navAutocompleteTextContainer: {
     flex: 1,
+    minWidth: 0,
   },
   navAutocompleteMainText: {
     fontSize: 13,
     fontWeight: '600',
     color: '#0f172a',
+    flexShrink: 1,
   },
   navAutocompleteSecondaryText: {
     fontSize: 11,
@@ -1560,6 +1582,9 @@ export const styles = StyleSheet.create({
   currentLocationButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
+    zIndex: 30,
+    elevation: 30,
     gap: 6,
     paddingVertical: 8,
     paddingHorizontal: 10,
@@ -1577,6 +1602,10 @@ export const styles = StyleSheet.create({
   },
 
   // Route display styles
+  originMarker: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   destinationMarker: {
     alignItems: 'center',
     justifyContent: 'center',
