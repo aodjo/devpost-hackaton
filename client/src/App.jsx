@@ -42,6 +42,10 @@ function App() {
   const mapRef = useRef(null)
   const originRef = useRef(null)
   const [collapseAnim] = useState(() => new Animated.Value(0))
+  const [panelExpandAnim] = useState(() => new Animated.Value(0))
+  const [panelMinimizeAnim] = useState(() => new Animated.Value(0))
+  const [isPanelExpanded, setIsPanelExpanded] = useState(false)
+  const [isPanelMinimized, setIsPanelMinimized] = useState(false)
   const [mapType, setMapType] = useState('roadmap')
   const [activeTab, setActiveTab] = useState(LABELS.home)
   const [transitType, setTransitType] = useState('bus')
@@ -250,8 +254,15 @@ function App() {
       toValue: isBottomPanelTab ? 1 : 0,
       duration: 300,
       useNativeDriver: false,
-    }).start()
-  }, [isBottomPanelTab, collapseAnim])
+    }).start(({ finished }) => {
+      if (finished && !isBottomPanelTab) {
+        panelExpandAnim.setValue(0)
+        panelMinimizeAnim.setValue(0)
+        setIsPanelExpanded(false)
+        setIsPanelMinimized(false)
+      }
+    })
+  }, [isBottomPanelTab, collapseAnim, panelExpandAnim, panelMinimizeAnim])
 
   const activeNavIndex = Math.max(0, NAV_ITEMS.indexOf(activeTab))
   const navIndicatorWidth =
@@ -289,6 +300,47 @@ function App() {
         }),
       },
     ],
+  }
+
+  const animatePanelState = ({ expanded, minimized }) => {
+    setIsPanelExpanded(expanded)
+    setIsPanelMinimized(minimized)
+
+    Animated.parallel([
+      Animated.spring(panelExpandAnim, {
+        toValue: expanded ? 1 : 0,
+        useNativeDriver: false,
+        speed: 20,
+        bounciness: 0,
+      }),
+      Animated.spring(panelMinimizeAnim, {
+        toValue: minimized ? 1 : 0,
+        useNativeDriver: false,
+        speed: 20,
+        bounciness: 0,
+      }),
+    ]).start()
+  }
+
+  const handleExpandPanel = () => {
+    animatePanelState({ expanded: true, minimized: false })
+  }
+
+  const handleCollapsePanel = () => {
+    animatePanelState({ expanded: false, minimized: false })
+  }
+
+  const handleMinimizePanel = () => {
+    animatePanelState({ expanded: false, minimized: true })
+  }
+
+  const handleTogglePanel = () => {
+    if (isPanelMinimized) {
+      handleCollapsePanel()
+      return
+    }
+
+    animatePanelState({ expanded: !isPanelExpanded, minimized: false })
   }
 
   const handleBackgroundPress = () => {
@@ -382,6 +434,14 @@ function App() {
             mapType={mapType}
             setMapType={setMapType}
             collapseAnim={collapseAnim}
+            panelExpandAnim={panelExpandAnim}
+            panelMinimizeAnim={panelMinimizeAnim}
+            isPanelExpanded={isPanelExpanded}
+            isPanelMinimized={isPanelMinimized}
+            onExpandPanel={handleExpandPanel}
+            onCollapsePanel={handleCollapsePanel}
+            onMinimizePanel={handleMinimizePanel}
+            onTogglePanel={handleTogglePanel}
             panelBottomClearance={panelBottomClearance}
             isTransitTab={isTransitTab}
             transitType={transitType}
