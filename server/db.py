@@ -12,6 +12,9 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE,
+                google_id TEXT UNIQUE,
+                profile_image TEXT,
                 obstacles_reported INTEGER DEFAULT 0,
                 photos_uploaded INTEGER DEFAULT 0,
                 verifications INTEGER DEFAULT 0,
