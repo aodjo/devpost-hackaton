@@ -2,6 +2,7 @@ import asyncio
 import os
 import re
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -9,6 +10,9 @@ import httpx
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import PlainTextResponse
 from dotenv import load_dotenv
+
+from db import init_db
+from warning import router as warning_router
 
 load_dotenv(Path(__file__).with_name(".env"))
 
@@ -22,7 +26,15 @@ MAX_ZOOM = int(os.getenv("MAX_ZOOM", "22"))
 SESSION_REFRESH_GRACE_SECONDS = int(os.getenv("SESSION_REFRESH_GRACE_SECONDS", "60"))
 MAX_SESSION_CACHE_SIZE = int(os.getenv("MAX_SESSION_CACHE_SIZE", "128"))
 
-app = FastAPI(title="Google Tiles Proxy")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="Google Tiles Proxy", lifespan=lifespan)
+
+app.include_router(warning_router)
 
 _session_entries: dict[str, tuple[str, float]] = {}
 _session_locks: dict[str, asyncio.Lock] = {}
