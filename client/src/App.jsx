@@ -357,11 +357,12 @@ function App() {
       })
 
       const data = await response.json()
+      console.log('Obstacles API response:', data)
       if (data.places) {
         setObstacles(data.places)
       }
-    } catch {
-      // Ignore fetch errors
+    } catch (error) {
+      console.error('Obstacles fetch error:', error)
     }
   }, [])
 

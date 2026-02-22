@@ -443,10 +443,11 @@ function MapTabContent({
                 latitude: obstacle.latitude,
                 longitude: obstacle.longitude,
               }}
-              tracksViewChanges={false}
+              anchor={{ x: 0.5, y: 0.5 }}
+              tracksViewChanges={true}
             >
-              <View style={[styles.obstacleMarker, { backgroundColor: config.bgColor }]}>
-                <FontAwesome5 name={config.icon} size={16} color={config.color} />
+              <View style={[styles.obstacleMarker, { backgroundColor: config.bgColor, borderColor: config.color }]}>
+                <FontAwesome5 name={config.icon} size={14} color={config.color} solid />
                 {obstacle.ids && obstacle.ids.length > 1 ? (
                   <View style={[styles.obstacleMarkerBadge, { backgroundColor: config.color }]}>
                     <Text style={styles.obstacleMarkerBadgeText}>{obstacle.ids.length}</Text>
