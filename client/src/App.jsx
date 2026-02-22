@@ -328,7 +328,7 @@ function App() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right']}>
       <View style={styles.mapWrapper}>
         {activeTab !== LABELS.profile && (
           <MapView
@@ -350,7 +350,7 @@ function App() {
 
         {activeTab !== LABELS.profile ? (
           <>
-            <View style={styles.topPanel}>
+            <View style={[styles.topPanel, { top: insets.top + 12 }]}>
               {isHomeTab ? (
                 <View style={[styles.inputCard, styles.homeInputCard]}>
                   <TextInput
@@ -867,7 +867,6 @@ const styles = StyleSheet.create({
   },
   topPanel: {
     position: 'absolute',
-    top: 12,
     left: 12,
     right: 12,
     gap: 8,
