@@ -660,6 +660,209 @@ L.tileLayer('https://your-server.com/maps/tiles/{z}/{x}/{y}.png?lang=ko-KR&mapTy
 
 ---
 
+## 장소 검색 (Places)
+
+Google Places API를 활용한 장소 검색 기능입니다.
+
+---
+
+### 텍스트 검색
+```
+POST /places/search/text
+```
+텍스트로 장소를 검색합니다.
+
+#### Request Body
+```json
+{
+    "query": "서울역",
+    "location": "37.5665,126.9780",
+    "radius": 5000,
+    "language": "ko"
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|-----|------|------|------|
+| query | string | O | 검색어 |
+| location | string | X | 위도,경도 |
+| radius | int | X | 검색 반경 (미터) |
+| language | string | X | 언어 (기본: ko) |
+
+#### Response (200 OK)
+```json
+{
+    "message": "Search completed",
+    "count": 5,
+    "results": [
+        {
+            "place_id": "ChIJN1t_tDeuEmsRUsoyG83frY4",
+            "name": "서울역",
+            "address": "서울특별시 중구 한강대로 405",
+            "latitude": 37.5546,
+            "longitude": 126.9706,
+            "types": ["train_station", "transit_station"],
+            "rating": 4.2,
+            "user_ratings_total": 12345,
+            "open_now": true
+        }
+    ],
+    "next_page_token": "..."
+}
+```
+
+---
+
+### 주변 검색
+```
+POST /places/search/nearby
+```
+현재 위치 기반으로 주변 장소를 검색합니다.
+
+#### Request Body
+```json
+{
+    "latitude": 37.5665,
+    "longitude": 126.9780,
+    "radius": 1000,
+    "keyword": "카페",
+    "type": "cafe",
+    "language": "ko"
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|-----|------|------|------|
+| latitude | float | O | 위도 |
+| longitude | float | O | 경도 |
+| radius | int | X | 검색 반경 (기본: 1000m) |
+| keyword | string | X | 키워드 |
+| type | string | X | 장소 유형 |
+| language | string | X | 언어 (기본: ko) |
+
+#### Response (200 OK)
+```json
+{
+    "message": "Search completed",
+    "count": 10,
+    "results": [
+        {
+            "place_id": "ChIJ...",
+            "name": "스타벅스 강남점",
+            "address": "강남대로 123",
+            "latitude": 37.5012,
+            "longitude": 127.0396,
+            "types": ["cafe"],
+            "rating": 4.0,
+            "user_ratings_total": 500,
+            "open_now": true
+        }
+    ],
+    "next_page_token": "..."
+}
+```
+
+---
+
+### 자동완성
+```
+GET /places/autocomplete
+```
+검색어 입력 시 실시간 장소 추천을 제공합니다.
+
+#### Query Parameters
+| 파라미터 | 타입 | 필수 | 설명 |
+|---------|------|------|------|
+| input | string | O | 검색어 |
+| location | string | X | 위도,경도 |
+| radius | int | X | 검색 반경 (미터) |
+| language | string | X | 언어 (기본: ko) |
+
+#### 사용 예시
+```
+GET /places/autocomplete?input=서울역&location=37.5665,126.9780
+```
+
+#### Response (200 OK)
+```json
+{
+    "message": "Autocomplete completed",
+    "count": 5,
+    "predictions": [
+        {
+            "place_id": "ChIJN1t_tDeuEmsRUsoyG83frY4",
+            "description": "서울역, 서울특별시 중구",
+            "main_text": "서울역",
+            "secondary_text": "서울특별시 중구",
+            "types": ["train_station"]
+        }
+    ]
+}
+```
+
+---
+
+### 장소 상세 정보
+```
+GET /places/details/{place_id}
+```
+place_id로 장소의 상세 정보를 조회합니다.
+
+#### Path Parameters
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| place_id | string | 장소 ID |
+
+#### Query Parameters
+| 파라미터 | 타입 | 기본값 | 설명 |
+|---------|------|--------|------|
+| language | string | ko | 언어 |
+
+#### Response (200 OK)
+```json
+{
+    "message": "Details retrieved",
+    "place": {
+        "place_id": "ChIJN1t_tDeuEmsRUsoyG83frY4",
+        "name": "서울역",
+        "address": "서울특별시 중구 한강대로 405",
+        "phone": "02-1234-5678",
+        "latitude": 37.5546,
+        "longitude": 126.9706,
+        "types": ["train_station", "transit_station"],
+        "rating": 4.2,
+        "user_ratings_total": 12345,
+        "opening_hours": [
+            "월요일: 24시간 영업",
+            "화요일: 24시간 영업"
+        ],
+        "open_now": true,
+        "website": "https://www.seoulstation.co.kr",
+        "google_maps_url": "https://maps.google.com/?cid=..."
+    }
+}
+```
+
+---
+
+### 장소 유형 (type) 참고
+
+| 유형 | 설명 |
+|-----|------|
+| cafe | 카페 |
+| restaurant | 음식점 |
+| subway_station | 지하철역 |
+| train_station | 기차역 |
+| bus_station | 버스 정류장 |
+| hospital | 병원 |
+| pharmacy | 약국 |
+| convenience_store | 편의점 |
+| parking | 주차장 |
+
+전체 목록: [Google Place Types](https://developers.google.com/maps/documentation/places/web-service/supported_types)
+
+---
+
 ## 공통 에러 응답
 
 | 상태 코드 | 설명 |
