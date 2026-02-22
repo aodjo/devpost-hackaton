@@ -97,3 +97,7 @@ Useful commands:
 ## License
 
 This project is licensed under MIT. See `LICENSE` for details.
+
+## To BSD Team Members
+
+Great work, team. Let's win. - Junsung Lee
