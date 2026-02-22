@@ -7,13 +7,14 @@
     "userInterfaceStyle": "light",
     "assetBundlePatterns": ["**/*"],
     "android": {
-      "package": "dev.junx.devpost"
+      "package": "dev.junx.devpost",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "ios": {
       "bundleIdentifier": "dev.junx.devpost"
     },
     "extra": {
-      "tileProxyBaseUrl": "http://10.0.2.2:8000"
+      "tileProxyBaseUrl": "http://192.168.219.103:8000"
     }
   }
 }
