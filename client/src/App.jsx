@@ -259,6 +259,8 @@ function App() {
       : 0
   const bottomNavBottom = insets.bottom + 12
   const panelBottomClearance = bottomNavHeight + bottomNavBottom + 8
+  const focusButtonBottom = panelBottomClearance + 24
+  const locationErrorBottom = bottomNavHeight + bottomNavBottom + 8
 
   useEffect(() => {
     if (navIndicatorWidth <= 0) {
@@ -565,7 +567,7 @@ function App() {
         </Animated.View>
 
         <Pressable
-          style={styles.focusButton}
+          style={[styles.focusButton, { bottom: focusButtonBottom }]}
           onPress={focusMyLocation}
           accessibilityRole="button"
           accessibilityLabel={LABELS.focusMyLocation}
@@ -573,7 +575,9 @@ function App() {
           <MaterialIcons name="gps-fixed" size={22} color="#f8fafc" />
         </Pressable>
 
-        {locationError ? <Text style={styles.locationError}>{locationError}</Text> : null}
+        {locationError ? (
+          <Text style={[styles.locationError, { bottom: locationErrorBottom }]}>{locationError}</Text>
+        ) : null}
 
         <View
           style={[styles.bottomNav, { bottom: bottomNavBottom }]}
@@ -711,7 +715,6 @@ const styles = StyleSheet.create({
   focusButton: {
     position: 'absolute',
     right: 12,
-    bottom: 92,
     backgroundColor: '#0f172a',
     width: 44,
     height: 44,
@@ -722,7 +725,6 @@ const styles = StyleSheet.create({
   locationError: {
     position: 'absolute',
     left: 12,
-    bottom: 74,
     backgroundColor: 'rgba(15, 23, 42, 0.9)',
     color: '#f8fafc',
     paddingHorizontal: 10,
