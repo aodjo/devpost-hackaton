@@ -5,6 +5,11 @@
     "transit": "대중교통",
     "profile": "내 정보"
   },
+  "panel": {
+    "navigation": "길 찾기",
+    "transit": "대중교통",
+    "profile": "내 정보"
+  },
   "map": {
     "road": "간략",
     "satellite": "위성",
@@ -42,10 +47,12 @@
     "loadFailed": "위치 불러오기 실패"
   },
   "profile": {
-    "loginPrompt": "로그인해서 배지 얻기",
+    "loginPrompt": "로그인해서 OpenRoute에 기여하세요",
     "login": "로그인",
+    "loginWithGoogle": "Google으로 로그인",
     "logout": "로그아웃",
     "myProfile": "내 정보",
+    "editProfile": "프로필 수정",
     "changePassword": "비밀번호 변경",
     "username": "아이디",
     "password": "비밀번호",
@@ -56,7 +63,18 @@
     "confirm": "확인",
     "myBadges": "내 배지",
     "badges": "배지",
+    "medals": "메달",
+    "settings": "설정",
+    "fontSize": "글자 크기",
+    "fontSizes": {
+      "small": "작게",
+      "medium": "보통",
+      "large": "크게"
+    },
     "language": "언어",
+    "appInfo": "앱 정보",
+    "version": "버전",
+    "openSource": "오픈소스 라이선스",
     "passwordMismatch": "새 비밀번호가 일치하지 않습니다.",
     "error": "오류",
     "close": "닫기",

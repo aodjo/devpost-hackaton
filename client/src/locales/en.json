@@ -5,6 +5,11 @@
     "transit": "Transit",
     "profile": "Profile"
   },
+  "panel": {
+    "navigation": "Find Route",
+    "transit": "Transit",
+    "profile": "My Profile"
+  },
   "map": {
     "road": "Map",
     "satellite": "Satellite",
@@ -42,10 +47,12 @@
     "loadFailed": "Failed to load location"
   },
   "profile": {
-    "loginPrompt": "Login to earn badges",
+    "loginPrompt": "Login to contribute OpenRoute",
     "login": "Login",
+    "loginWithGoogle": "Sign in with Google",
     "logout": "Logout",
     "myProfile": "My Profile",
+    "editProfile": "Edit Profile",
     "changePassword": "Change Password",
     "username": "Username",
     "password": "Password",
@@ -56,7 +63,18 @@
     "confirm": "Confirm",
     "myBadges": "My Badges",
     "badges": "Badges",
+    "medals": "Medals",
+    "settings": "Settings",
+    "fontSize": "Font Size",
+    "fontSizes": {
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    },
     "language": "Language",
+    "appInfo": "App Info",
+    "version": "Version",
+    "openSource": "Open Source License",
     "passwordMismatch": "New passwords do not match.",
     "error": "Error",
     "close": "Close",
