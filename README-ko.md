@@ -9,6 +9,13 @@ OpenRoute는 사용자 제보와 지도 기반 경로 탐색을 활용해 접근
 
 ## 프로젝트 소개
 
+> 이 프로젝트는 [grizzly-hacks-ii 해커톤](https://grizzly-hacks-ii.devpost.com/)를 위해 제작되었습니다.
+> 이 프로젝트는 팀 BSD(Better Software Development, [이준성](https://junx.dev/) (팀장), 전재민, 박한결, 이주원)에 의해 작성되었습니다.
+> 이 레포지토리의 모든 저작물에 대한 저작권은 팀 BSD(Better Software Development)에 있습니다. (자세한 내용은 [LICENSE](/LICENSE)를 확인하세요)
+> 이 레포지토리는 팀 BSD에 의해 관리됩니다.
+
+## OpenRoute 소개
+
 - 보행 경로를 탐색하고 경로 위의 제보 장애물을 표시합니다.
 - 장소 검색(자동완성 + 상세 조회)을 지원합니다.
 - 사진 업로드와 함께 신규 장애물 제보가 가능합니다.

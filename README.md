@@ -7,7 +7,14 @@ OpenRoute is a mobile navigation app that helps users avoid accessibility obstac
 > This document is translated with AI based on the [Korean document](/README-ko.md).
 > If there is any conflict between the two documents, the [Korean document](/README-ko.md) takes precedence.
 
-## Project Overview
+## About This Project
+
+> This project was created for the [grizzly-hacks-ii hackathon](https://grizzly-hacks-ii.devpost.com/).
+> This project was built by Team BSD (Better Software Development): [Junsung Lee](https://junx.dev/) (Team Lead), Jaemin Jeon, Levi Park, and Joowon Lee.
+> Copyright for all works in this repository belongs to Team BSD (Better Software Development). (See [LICENSE](/LICENSE) for details.)
+> This repository is maintained by Team BSD.
+
+## OpenRoute Overview
 
 - Searches walking routes and displays reported obstacles along the route.
 - Supports place search (autocomplete + place details).
