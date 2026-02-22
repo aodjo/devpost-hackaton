@@ -1,16 +1,32 @@
 import sqlite3
+from typing import Generator
 
-conn = sqlite3.connect('database.db')
-cursor = conn.cursor()
+DB_PATH = "database.db"
 
-cursor.execute('''
-    CREATE TABLE IF NOT EXISTS warning_places (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        latitude REAL NOT NULL,
-        longitude REAL NOT NULL,
-        description TEXT NOT NULL,
-    )
-''')
+def init_db() -> None:
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS warning_places (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                latitude REAL NOT NULL,
+                longitude REAL NOT NULL,
+                description TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+    finally:
+        conn.close()
 
-conn.commit()
+def get_db() -> Generator[sqlite3.Connection, None, None]:
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
