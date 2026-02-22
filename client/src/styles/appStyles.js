@@ -639,5 +639,44 @@ export const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
+  languageSection: {
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.28)',
+  },
+  languageTitle: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#94a3b8',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  languageButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  languageButton: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  languageButtonActive: {
+    backgroundColor: '#0f172a',
+    borderColor: '#0f172a',
+  },
+  languageButtonText: {
+    fontWeight: '600',
+    color: '#475569',
+    fontSize: 14,
+  },
+  languageButtonTextActive: {
+    color: '#f8fafc',
+  },
 })
 

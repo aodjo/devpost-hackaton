@@ -1,8 +1,9 @@
 import { Animated, Pressable, Text, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 function BottomNavBar({
   styles,
-  navItems,
+  navItemKeys,
   activeTab,
   onPressNavItem,
   bottomNavBottom,
@@ -10,6 +11,8 @@ function BottomNavBar({
   navIndicatorWidth,
   navIndicatorAnim,
 }) {
+  const { t } = useTranslation()
+
   return (
     <View style={[styles.bottomNav, { bottom: bottomNavBottom }]} onLayout={onLayout}>
       {navIndicatorWidth > 0 ? (
@@ -25,9 +28,11 @@ function BottomNavBar({
         />
       ) : null}
 
-      {navItems.map((item) => (
-        <Pressable key={item} style={styles.navItem} onPress={() => onPressNavItem(item)}>
-          <Text style={[styles.navText, activeTab === item && styles.navTextActive]}>{item}</Text>
+      {navItemKeys.map((key) => (
+        <Pressable key={key} style={styles.navItem} onPress={() => onPressNavItem(key)}>
+          <Text style={[styles.navText, activeTab === key && styles.navTextActive]}>
+            {t(`nav.${key}`)}
+          </Text>
         </Pressable>
       ))}
     </View>
