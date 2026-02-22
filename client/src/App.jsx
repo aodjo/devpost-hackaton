@@ -52,6 +52,7 @@ const INITIAL_REGION = {
 const SEARCH_BUTTON_HEIGHT = 34
 const NAVBAR_RADIUS = 14
 const NAVBAR_VERTICAL_PADDING = 8
+const NAVBAR_HORIZONTAL_PADDING = 6
 
 function App() {
   const mapRef = useRef(null)
@@ -65,6 +66,8 @@ function App() {
   const [currentLocation, setCurrentLocation] = useState(null)
   const [locationError, setLocationError] = useState('')
   const [dividerCenterY, setDividerCenterY] = useState(null)
+  const [bottomNavWidth, setBottomNavWidth] = useState(0)
+  const [navIndicatorAnim] = useState(() => new Animated.Value(0))
 
   const transitRoutes = [
     {
@@ -215,6 +218,25 @@ function App() {
       useNativeDriver: false,
     }).start()
   }, [activeTab, collapseAnim])
+
+  const activeNavIndex = Math.max(0, NAV_ITEMS.indexOf(activeTab))
+  const navIndicatorWidth =
+    bottomNavWidth > 0
+      ? (bottomNavWidth - NAVBAR_HORIZONTAL_PADDING * 2) / NAV_ITEMS.length
+      : 0
+
+  useEffect(() => {
+    if (navIndicatorWidth <= 0) {
+      return
+    }
+
+    Animated.spring(navIndicatorAnim, {
+      toValue: activeNavIndex * navIndicatorWidth,
+      useNativeDriver: true,
+      speed: 18,
+      bounciness: 0,
+    }).start()
+  }, [activeNavIndex, navIndicatorWidth, navIndicatorAnim])
 
   const mapTypeRowAnimatedStyle = {
     opacity: collapseAnim.interpolate({
@@ -417,7 +439,23 @@ function App() {
 
         {locationError ? <Text style={styles.locationError}>{locationError}</Text> : null}
 
-        <View style={styles.bottomNav}>
+        <View
+          style={styles.bottomNav}
+          onLayout={(event) => setBottomNavWidth(event.nativeEvent.layout.width)}
+        >
+          {navIndicatorWidth > 0 ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.navIndicator,
+                {
+                  width: navIndicatorWidth,
+                  transform: [{ translateX: navIndicatorAnim }],
+                },
+              ]}
+            />
+          ) : null}
+
           {NAV_ITEMS.map((item) => (
             <Pressable
               key={item}
@@ -578,9 +616,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.95)',
     borderRadius: NAVBAR_RADIUS,
     paddingVertical: NAVBAR_VERTICAL_PADDING,
-    paddingHorizontal: 6,
+    paddingHorizontal: NAVBAR_HORIZONTAL_PADDING,
     zIndex: 20,
     elevation: 20,
+    overflow: 'hidden',
+  },
+  navIndicator: {
+    position: 'absolute',
+    left: NAVBAR_HORIZONTAL_PADDING,
+    top: NAVBAR_VERTICAL_PADDING,
+    bottom: NAVBAR_VERTICAL_PADDING,
+    backgroundColor: '#0f172a',
+    borderRadius: 10,
   },
   navItem: {
     flex: 1,
@@ -588,6 +635,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 8,
     borderRadius: 10,
+    zIndex: 1,
   },
   navText: {
     color: '#475569',
@@ -595,7 +643,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   navTextActive: {
-    color: '#0f172a',
+    color: '#f8fafc',
   },
   collapsiblePanel: {
     position: 'absolute',
