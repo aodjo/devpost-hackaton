@@ -336,8 +336,7 @@ function App() {
                 accessibilityRole="button"
                 accessibilityLabel={LABELS.search}
               >
-                <MaterialIcons name="search" size={18} color="#f8fafc" />
-                <Text style={styles.searchButtonText}>{LABELS.search}</Text>
+                <MaterialIcons name="search" size={20} color="#f8fafc" />
               </Pressable>
             </View>
           ) : null}
@@ -648,14 +647,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   homeSearchButton: {
-    minWidth: 68,
-    height: SEARCH_BUTTON_HEIGHT,
-    borderRadius: 17,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     backgroundColor: '#0f172a',
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 10,
     shadowColor: '#020617',
     shadowOpacity: 0.24,
     shadowRadius: 8,
