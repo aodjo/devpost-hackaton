@@ -20,6 +20,7 @@ from warning import router as warning_router
 from badge import router as badge_router
 from auth import router as auth_router
 from places import router as places_router
+from directions import router as directions_router
 
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 DEFAULT_MAP_TYPE = os.getenv("GOOGLE_MAP_TYPE", "roadmap")
@@ -97,6 +98,7 @@ app.include_router(warning_router)
 app.include_router(badge_router)
 app.include_router(auth_router)
 app.include_router(places_router)
+app.include_router(directions_router)
 
 _session_entries: dict[str, tuple[str, float]] = {}
 _session_locks: dict[str, asyncio.Lock] = {}

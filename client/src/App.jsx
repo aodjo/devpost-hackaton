@@ -62,6 +62,16 @@ function App() {
   const autocompleteTimeoutRef = useRef(null)
   const [originInput, setOriginInput] = useState('')
   const [destinationInput, setDestinationInput] = useState('')
+  const [originPlace, setOriginPlace] = useState(null)
+  const [destinationPlace, setDestinationPlace] = useState(null)
+  const [originAutocomplete, setOriginAutocomplete] = useState([])
+  const [destinationAutocomplete, setDestinationAutocomplete] = useState([])
+  const [activeNavInput, setActiveNavInput] = useState(null) // 'origin' | 'destination' | null
+  const [routeData, setRouteData] = useState(null)
+  const [isLoadingRoute, setIsLoadingRoute] = useState(false)
+  const [routeObstacles, setRouteObstacles] = useState([])
+  const originAutocompleteRef = useRef(null)
+  const destinationAutocompleteRef = useRef(null)
   const [currentLocation, setCurrentLocation] = useState(null)
   const [currentHeading, setCurrentHeading] = useState(null)
   const [locationError, setLocationError] = useState('')
@@ -85,16 +95,36 @@ function App() {
   }, [mapType])
 
   const navigationSummary = useMemo(
-    () => ({
-      from: originInput.trim(),
-      to: destinationInput.trim(),
-      eta: '15:42',
-      duration: '24\ubd84',
-      distance: '8.4km',
-    }),
-    [originInput, destinationInput],
+    () => {
+      if (routeData) {
+        const now = new Date()
+        const durationMinutes = Math.round(routeData.duration_value / 60)
+        const eta = new Date(now.getTime() + routeData.duration_value * 1000)
+        const etaStr = `${eta.getHours().toString().padStart(2, '0')}:${eta.getMinutes().toString().padStart(2, '0')}`
+        return {
+          from: originInput.trim() || t('navigation.currentLocation'),
+          to: destinationInput.trim(),
+          eta: etaStr,
+          duration: routeData.duration,
+          distance: routeData.distance,
+          obstacleCount: routeData.obstacle_count || 0,
+          isAccessible: routeData.is_accessible,
+        }
+      }
+      return {
+        from: originInput.trim(),
+        to: destinationInput.trim(),
+        eta: '',
+        duration: '',
+        distance: '',
+        obstacleCount: 0,
+        isAccessible: true,
+      }
+    },
+    [originInput, destinationInput, routeData, t],
   )
-  const hasNavigationInputs = navigationSummary.from.length > 0 && navigationSummary.to.length > 0
+  const hasNavigationInputs = (originPlace || currentLocation) && destinationPlace
+  const hasRouteData = routeData !== null
 
   useEffect(() => {
     let watchSubscription
@@ -202,11 +232,188 @@ function App() {
     )
   }
 
-  const handleSearch = () => {
-    if (!originInput && !destinationInput) {
+  const fetchNavAutocomplete = useCallback(async (query, type) => {
+    if (!query.trim()) {
+      if (type === 'origin') setOriginAutocomplete([])
+      else setDestinationAutocomplete([])
       return
     }
+
+    try {
+      const locationParam = currentLocation
+        ? `&location=${currentLocation.latitude},${currentLocation.longitude}`
+        : ''
+      const response = await fetch(
+        `${API_BASE_URL}/places/autocomplete?input=${encodeURIComponent(query)}${locationParam}&language=ko`
+      )
+      const data = await response.json()
+      if (data.predictions) {
+        if (type === 'origin') setOriginAutocomplete(data.predictions)
+        else setDestinationAutocomplete(data.predictions)
+      }
+    } catch {
+      if (type === 'origin') setOriginAutocomplete([])
+      else setDestinationAutocomplete([])
+    }
+  }, [currentLocation])
+
+  const handleOriginInputChange = useCallback((text) => {
+    setOriginInput(text)
+    setOriginPlace(null)
+    setActiveNavInput('origin')
+
+    if (originAutocompleteRef.current) {
+      clearTimeout(originAutocompleteRef.current)
+    }
+
+    if (!text.trim()) {
+      setOriginAutocomplete([])
+      return
+    }
+
+    originAutocompleteRef.current = setTimeout(() => {
+      fetchNavAutocomplete(text, 'origin')
+    }, 300)
+  }, [fetchNavAutocomplete])
+
+  const handleDestinationInputChange = useCallback((text) => {
+    setDestinationInput(text)
+    setDestinationPlace(null)
+    setActiveNavInput('destination')
+
+    if (destinationAutocompleteRef.current) {
+      clearTimeout(destinationAutocompleteRef.current)
+    }
+
+    if (!text.trim()) {
+      setDestinationAutocomplete([])
+      return
+    }
+
+    destinationAutocompleteRef.current = setTimeout(() => {
+      fetchNavAutocomplete(text, 'destination')
+    }, 300)
+  }, [fetchNavAutocomplete])
+
+  const handleSelectNavPlace = useCallback(async (prediction, type) => {
+    if (type === 'origin') {
+      setOriginInput(prediction.main_text)
+      setOriginAutocomplete([])
+    } else {
+      setDestinationInput(prediction.main_text)
+      setDestinationAutocomplete([])
+    }
+    setActiveNavInput(null)
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/places/details/${prediction.place_id}?language=ko`
+      )
+      const data = await response.json()
+
+      if (data.place) {
+        const place = {
+          placeId: data.place.place_id,
+          name: data.place.name,
+          address: data.place.address,
+          latitude: data.place.latitude,
+          longitude: data.place.longitude,
+        }
+        if (type === 'origin') {
+          setOriginPlace(place)
+        } else {
+          setDestinationPlace(place)
+        }
+      }
+    } catch {
+      // Ignore place details fetch errors
+    }
+  }, [])
+
+  const handleUseCurrentLocation = useCallback(() => {
+    if (!currentLocation) return
+    setOriginInput(t('navigation.currentLocation'))
+    setOriginPlace({
+      name: t('navigation.currentLocation'),
+      latitude: currentLocation.latitude,
+      longitude: currentLocation.longitude,
+    })
+    setOriginAutocomplete([])
+    setActiveNavInput(null)
+  }, [currentLocation, t])
+
+  const fetchDirections = useCallback(async () => {
+    const origin = originPlace || (currentLocation ? {
+      latitude: currentLocation.latitude,
+      longitude: currentLocation.longitude,
+    } : null)
+
+    if (!origin || !destinationPlace) {
+      Alert.alert(t('navigation.error'), t('navigation.selectBothLocations'))
+      return
+    }
+
+    setIsLoadingRoute(true)
+    setRouteData(null)
+    setRouteObstacles([])
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/directions/walking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          origin_latitude: origin.latitude,
+          origin_longitude: origin.longitude,
+          destination_latitude: destinationPlace.latitude,
+          destination_longitude: destinationPlace.longitude,
+          avoid_obstacles: true,
+          language: 'ko',
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.recommended_route) {
+        setRouteData(data.recommended_route)
+        setRouteObstacles(data.recommended_route.obstacles || [])
+
+        // 경로가 보이도록 지도 조정
+        if (mapRef.current && data.recommended_route.start_location && data.recommended_route.end_location) {
+          const start = data.recommended_route.start_location
+          const end = data.recommended_route.end_location
+          const midLat = (start.lat + end.lat) / 2
+          const midLng = (start.lng + end.lng) / 2
+          const latDelta = Math.abs(start.lat - end.lat) * 1.5
+          const lngDelta = Math.abs(start.lng - end.lng) * 1.5
+
+          mapRef.current.animateToRegion({
+            latitude: midLat,
+            longitude: midLng,
+            latitudeDelta: Math.max(latDelta, 0.01),
+            longitudeDelta: Math.max(lngDelta, 0.01),
+          }, 500)
+        }
+      }
+    } catch (error) {
+      console.error('Directions error:', error)
+      Alert.alert(t('navigation.error'), t('navigation.routeError'))
+    } finally {
+      setIsLoadingRoute(false)
+    }
+  }, [originPlace, destinationPlace, currentLocation, t])
+
+  const handleSearch = () => {
+    fetchDirections()
   }
+
+  const handleClearRoute = useCallback(() => {
+    setRouteData(null)
+    setRouteObstacles([])
+    setOriginInput('')
+    setDestinationInput('')
+    setOriginPlace(null)
+    setDestinationPlace(null)
+  }, [])
 
   const fetchAutocomplete = useCallback(async (query) => {
     if (!query.trim()) {
@@ -578,14 +785,27 @@ function App() {
           isProfileTab={isProfileTab}
           originRef={originRef}
           originInput={originInput}
-          setOriginInput={setOriginInput}
+          onOriginInputChange={handleOriginInputChange}
           destinationInput={destinationInput}
-          setDestinationInput={setDestinationInput}
+          onDestinationInputChange={handleDestinationInputChange}
+          originAutocomplete={originAutocomplete}
+          destinationAutocomplete={destinationAutocomplete}
+          activeNavInput={activeNavInput}
+          setActiveNavInput={setActiveNavInput}
+          onSelectNavPlace={handleSelectNavPlace}
+          onUseCurrentLocation={handleUseCurrentLocation}
+          originPlace={originPlace}
+          destinationPlace={destinationPlace}
+          routeData={routeData}
+          routeObstacles={routeObstacles}
+          isLoadingRoute={isLoadingRoute}
+          onClearRoute={handleClearRoute}
           setDividerCenterY={setDividerCenterY}
           dividerCenterY={dividerCenterY}
           searchButtonHeight={SEARCH_BUTTON_HEIGHT}
           onSearch={handleSearch}
           hasNavigationInputs={hasNavigationInputs}
+          hasRouteData={hasRouteData}
           navigationSummary={navigationSummary}
           focusButtonBottom={focusButtonBottom}
           onFocusMyLocation={focusMyLocation}
