@@ -2,10 +2,11 @@
 import Constants from 'expo-constants'
 import * as Location from 'expo-location'
 import { MaterialIcons } from '@expo/vector-icons'
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Platform, Pressable, StyleSheet, Text, TextInput, View, Alert, Animated } from 'react-native'
 import MapView, { Marker, UrlTile } from 'react-native-maps'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const TILE_PROXY_BASE_URL =
   Constants.expoConfig?.extra?.tileProxyBaseUrl ?? 'http://10.0.2.2:8000'
@@ -39,6 +40,14 @@ const LABELS = {
   permissionRequired: '\uC704\uCE58 \uAD8C\uD55C \uD544\uC694',
   locationLoadFailed: '\uC704\uCE58 \uBD88\uB7EC\uC624\uAE30 \uC2E4\uD328',
   focusMyLocation: '\uB0B4 \uC704\uCE58\uB85C \uD3EC\uCEE4\uC2A4',
+  navigationPanelTitle: '\uCD94\uCC9C \uACBD\uB85C',
+  eta: '\uC608\uC0C1 \uB3C4\uCC29',
+  duration: '\uC18C\uC694',
+  distance: '\uAC70\uB9AC',
+  startGuidance: '\uC548\uB0B4 \uC2DC\uC791',
+  currentLocation: '\uD604\uC7AC \uC704\uCE58',
+  setDestination: '\uBAA9\uC801\uC9C0 \uC124\uC815',
+  routeHint: '\uCD9C\uBC1C\uC9C0\uC640 \uBAA9\uC801\uC9C0\uB97C \uC785\uB825\uD558\uBA74 \uACBD\uB85C\uAC00 \uD45C\uC2DC\uB429\uB2C8\uB2E4.',
 }
 
 const NAV_ITEMS = [LABELS.home, LABELS.navigation, LABELS.transit, LABELS.profile]
@@ -53,8 +62,15 @@ const SEARCH_BUTTON_HEIGHT = 34
 const NAVBAR_RADIUS = 14
 const NAVBAR_VERTICAL_PADDING = 8
 const NAVBAR_HORIZONTAL_PADDING = 6
+const NAVIGATION_STEPS = [
+  { id: 'step-1', icon: 'trip-origin', text: '\uCD9C\uBC1C \uD6C4 300m \uC9C1\uC9C4' },
+  { id: 'step-2', icon: 'turn-right', text: '\uC0BC\uC77C\uB300\uB85C\uC5D0\uC11C \uC6B0\uD68C\uC804' },
+  { id: 'step-3', icon: 'straight', text: '\uD558\uB2E8 \uB8E8\uD2B8\uB85C 1.8km \uC774\uB3D9' },
+  { id: 'step-4', icon: 'flag', text: '\uBAA9\uC801\uC9C0 \uB3C4\uCC29' },
+]
 
 function App() {
+  const insets = useSafeAreaInsets()
   const mapRef = useRef(null)
   const originRef = useRef(null)
   const [collapseAnim] = useState(() => new Animated.Value(0))
@@ -67,6 +83,7 @@ function App() {
   const [locationError, setLocationError] = useState('')
   const [dividerCenterY, setDividerCenterY] = useState(null)
   const [bottomNavWidth, setBottomNavWidth] = useState(0)
+  const [bottomNavHeight, setBottomNavHeight] = useState(0)
   const [navIndicatorAnim] = useState(() => new Animated.Value(0))
 
   const transitRoutes = [
@@ -116,6 +133,18 @@ function App() {
     const normalizedBase = `${TILE_PROXY_BASE_URL}`.replace(/\/+$/, '')
     return `${normalizedBase}/maps/tiles/{z}/{x}/{y}.png?${TILE_QUERY}&mapType=${encodeURIComponent(mapType)}`
   }, [mapType])
+
+  const navigationSummary = useMemo(
+    () => ({
+      from: originInput.trim(),
+      to: destinationInput.trim(),
+      eta: '15:42',
+      duration: '24\ubd84',
+      distance: '8.4km',
+    }),
+    [originInput, destinationInput],
+  )
+  const hasNavigationInputs = navigationSummary.from.length > 0 && navigationSummary.to.length > 0
 
   useEffect(() => {
     let watchSubscription
@@ -204,26 +233,34 @@ function App() {
 
   const handleNavPress = (item) => {
     setActiveTab(item)
-    if (item === LABELS.home) {
+    if (item === LABELS.home || item === LABELS.navigation) {
       setMapType('roadmap')
     } else if (item === LABELS.profile) {
       Alert.alert('Profile', 'Profile tab selected')
     }
   }
 
+  const isTransitTab = activeTab === LABELS.transit
+  const isNavigationTab = activeTab === LABELS.navigation
+  const isBottomPanelTab = isTransitTab || isNavigationTab
+
   useEffect(() => {
     Animated.timing(collapseAnim, {
-      toValue: activeTab === LABELS.transit ? 1 : 0,
+      toValue: isBottomPanelTab ? 1 : 0,
       duration: 300,
       useNativeDriver: false,
     }).start()
-  }, [activeTab, collapseAnim])
+  }, [isBottomPanelTab, collapseAnim])
 
   const activeNavIndex = Math.max(0, NAV_ITEMS.indexOf(activeTab))
   const navIndicatorWidth =
     bottomNavWidth > 0
       ? (bottomNavWidth - NAVBAR_HORIZONTAL_PADDING * 2) / NAV_ITEMS.length
       : 0
+  const bottomNavBottom = insets.bottom + 12
+  const panelBottomClearance = bottomNavHeight + bottomNavBottom + 8
+  const focusButtonBottom = panelBottomClearance + 24
+  const locationErrorBottom = bottomNavHeight + bottomNavBottom + 8
 
   useEffect(() => {
     if (navIndicatorWidth <= 0) {
@@ -274,44 +311,46 @@ function App() {
         </MapView>
 
         <View style={styles.topPanel}>
-          <View style={styles.inputCard}>
-            <TextInput
-              ref={originRef}
-              style={styles.input}
-              value={originInput}
-              onChangeText={setOriginInput}
-              placeholder={LABELS.originPlaceholder}
-              placeholderTextColor="#94a3b8"
-            />
-            <View
-              style={styles.inputDivider}
-              onLayout={(event) => {
-                const { y, height } = event.nativeEvent.layout
-                setDividerCenterY(y + height / 2)
-              }}
-            />
-            <TextInput
-              style={styles.input}
-              value={destinationInput}
-              onChangeText={setDestinationInput}
-              placeholder={LABELS.destinationPlaceholder}
-              placeholderTextColor="#94a3b8"
-            />
-            <Pressable
-              style={[
-                styles.searchButton,
-                dividerCenterY == null
-                  ? styles.searchButtonFallback
-                  : { top: dividerCenterY - SEARCH_BUTTON_HEIGHT / 2 },
-              ]}
-              onPress={handleSearch}
-              accessibilityRole="button"
-              accessibilityLabel={LABELS.search}
-            >
-              <MaterialIcons name="search" size={18} color="#f8fafc" />
-              <Text style={styles.searchButtonText}>{LABELS.search}</Text>
-            </Pressable>
-          </View>
+          {isNavigationTab ? null : (
+            <View style={styles.inputCard}>
+              <TextInput
+                ref={originRef}
+                style={styles.input}
+                value={originInput}
+                onChangeText={setOriginInput}
+                placeholder={LABELS.originPlaceholder}
+                placeholderTextColor="#94a3b8"
+              />
+              <View
+                style={styles.inputDivider}
+                onLayout={(event) => {
+                  const { y, height } = event.nativeEvent.layout
+                  setDividerCenterY(y + height / 2)
+                }}
+              />
+              <TextInput
+                style={styles.input}
+                value={destinationInput}
+                onChangeText={setDestinationInput}
+                placeholder={LABELS.destinationPlaceholder}
+                placeholderTextColor="#94a3b8"
+              />
+              <Pressable
+                style={[
+                  styles.searchButton,
+                  dividerCenterY == null
+                    ? styles.searchButtonFallback
+                    : { top: dividerCenterY - SEARCH_BUTTON_HEIGHT / 2 },
+                ]}
+                onPress={handleSearch}
+                accessibilityRole="button"
+                accessibilityLabel={LABELS.search}
+              >
+                <MaterialIcons name="search" size={18} color="#f8fafc" />
+                <Text style={styles.searchButtonText}>{LABELS.search}</Text>
+              </Pressable>
+            </View>
+          )}
 
           <Animated.View style={[styles.mapTypeRow, mapTypeRowAnimatedStyle]}>
             <Pressable
@@ -364,72 +403,171 @@ function App() {
               ],
             },
           ]}
-          pointerEvents={activeTab === LABELS.transit ? 'auto' : 'none'}
+          pointerEvents={isBottomPanelTab ? 'auto' : 'none'}
         >
-          <View style={styles.collapsibleContent}>
-            <View style={styles.transitButtonRow}>
-              <Pressable
-                style={[
-                  styles.mapTypeButton,
-                  transitType === 'bus' && styles.mapTypeButtonActive,
-                ]}
-                onPress={() => setTransitType('bus')}
-              >
-                <Text
-                  style={[
-                    styles.mapTypeButtonText,
-                    transitType === 'bus' && styles.mapTypeButtonTextActive,
-                  ]}
-                >
-                  {LABELS.bus}
-                </Text>
-              </Pressable>
+          <View style={[styles.collapsibleContent, { paddingBottom: panelBottomClearance }]}>
+            {isTransitTab ? (
+              <>
+                <View style={styles.transitButtonRow}>
+                  <Pressable
+                    style={[
+                      styles.mapTypeButton,
+                      transitType === 'bus' && styles.mapTypeButtonActive,
+                    ]}
+                    onPress={() => setTransitType('bus')}
+                  >
+                    <Text
+                      style={[
+                        styles.mapTypeButtonText,
+                        transitType === 'bus' && styles.mapTypeButtonTextActive,
+                      ]}
+                    >
+                      {LABELS.bus}
+                    </Text>
+                  </Pressable>
 
-              <Pressable
-                style={[
-                  styles.mapTypeButton,
-                  transitType === 'subway' && styles.mapTypeButtonActive,
-                ]}
-                onPress={() => setTransitType('subway')}
-              >
-                <Text
-                  style={[
-                    styles.mapTypeButtonText,
-                    transitType === 'subway' && styles.mapTypeButtonTextActive,
-                  ]}
-                >
-                  {LABELS.subway}
-                </Text>
-              </Pressable>
-            </View>
+                  <Pressable
+                    style={[
+                      styles.mapTypeButton,
+                      transitType === 'subway' && styles.mapTypeButtonActive,
+                    ]}
+                    onPress={() => setTransitType('subway')}
+                  >
+                    <Text
+                      style={[
+                        styles.mapTypeButtonText,
+                        transitType === 'subway' && styles.mapTypeButtonTextActive,
+                      ]}
+                    >
+                      {LABELS.subway}
+                    </Text>
+                  </Pressable>
+                </View>
 
-            <View style={styles.transitCardsContainer}>
-              {transitRoutes
-                .filter((route) => route.type === transitType)
-                .map((route) => (
-                  <View key={route.id} style={styles.transitCard}>
-                    <View style={styles.transitCardHeader}>
-                      <Text style={styles.routeName}>{route.routeName}</Text>
-                      <Text style={styles.arrivalTime}>{route.arrivalTime}</Text>
+                <View style={styles.transitCardsContainer}>
+                  {transitRoutes
+                    .filter((route) => route.type === transitType)
+                    .map((route) => (
+                      <View key={route.id} style={styles.transitCard}>
+                        <View style={styles.transitCardHeader}>
+                          <Text style={styles.routeName}>{route.routeName}</Text>
+                          <Text style={styles.arrivalTime}>{route.arrivalTime}</Text>
+                        </View>
+                        <View style={styles.transitCardBody}>
+                          <View style={styles.transitInfo}>
+                            <Text style={styles.transitLabel}>목적지 도착:</Text>
+                            <Text style={styles.transitValue}>{route.destinationArrival}</Text>
+                          </View>
+                          <View style={styles.transitInfo}>
+                            <Text style={styles.transitLabel}>경유:</Text>
+                            <Text style={styles.transitValue}>{route.stops}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                </View>
+              </>
+            ) : null}
+
+            {isNavigationTab ? (
+              <View style={styles.navigationPanel}>
+                <View style={styles.navigationInputCard}>
+                  <TextInput
+                    ref={originRef}
+                    style={styles.input}
+                    value={originInput}
+                    onChangeText={setOriginInput}
+                    placeholder={LABELS.originPlaceholder}
+                    placeholderTextColor="#94a3b8"
+                  />
+                  <View
+                    style={styles.inputDivider}
+                    onLayout={(event) => {
+                      const { y, height } = event.nativeEvent.layout
+                      setDividerCenterY(y + height / 2)
+                    }}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    value={destinationInput}
+                    onChangeText={setDestinationInput}
+                    placeholder={LABELS.destinationPlaceholder}
+                    placeholderTextColor="#94a3b8"
+                  />
+                  <Pressable
+                    style={[
+                      styles.searchButton,
+                      dividerCenterY == null
+                        ? styles.searchButtonFallback
+                        : { top: dividerCenterY - SEARCH_BUTTON_HEIGHT / 2 },
+                    ]}
+                    onPress={handleSearch}
+                    accessibilityRole="button"
+                    accessibilityLabel={LABELS.search}
+                  >
+                    <MaterialIcons name="search" size={18} color="#f8fafc" />
+                    <Text style={styles.searchButtonText}>{LABELS.search}</Text>
+                  </Pressable>
+                </View>
+
+                {hasNavigationInputs ? (
+                  <>
+                    <View style={styles.navigationHeaderRow}>
+                      <Text style={styles.navigationPanelTitle}>{LABELS.navigationPanelTitle}</Text>
+                      <View style={styles.navigationDistancePill}>
+                        <Text style={styles.navigationDistancePillText}>
+                          {LABELS.distance} {navigationSummary.distance}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.transitCardBody}>
-                      <View style={styles.transitInfo}>
-                        <Text style={styles.transitLabel}>목적지 도착:</Text>
-                        <Text style={styles.transitValue}>{route.destinationArrival}</Text>
+
+                    <View style={styles.navigationMetaRow}>
+                      <View style={styles.navigationMetaItem}>
+                        <Text style={styles.navigationMetaLabel}>{LABELS.eta}</Text>
+                        <Text style={styles.navigationMetaValue}>{navigationSummary.eta}</Text>
                       </View>
-                      <View style={styles.transitInfo}>
-                        <Text style={styles.transitLabel}>경유:</Text>
-                        <Text style={styles.transitValue}>{route.stops}</Text>
+                      <View style={styles.navigationMetaDivider} />
+                      <View style={styles.navigationMetaItem}>
+                        <Text style={styles.navigationMetaLabel}>{LABELS.duration}</Text>
+                        <Text style={styles.navigationMetaValue}>{navigationSummary.duration}</Text>
                       </View>
+                    </View>
+
+                    <View style={styles.navigationRouteCard}>
+                      <Text style={styles.navigationRouteFrom}>{navigationSummary.from}</Text>
+                      <View style={styles.navigationRouteLine} />
+                      <Text style={styles.navigationRouteTo}>{navigationSummary.to}</Text>
+                    </View>
+
+                    <View style={styles.navigationSteps}>
+                      {NAVIGATION_STEPS.map((step) => (
+                        <View key={step.id} style={styles.navigationStepRow}>
+                          <MaterialIcons name={step.icon} size={17} color="#334155" />
+                          <Text style={styles.navigationStepText}>{step.text}</Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    <Pressable style={styles.navigationStartButton}>
+                      <MaterialIcons name="navigation" size={18} color="#f8fafc" />
+                      <Text style={styles.navigationStartButtonText}>{LABELS.startGuidance}</Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <View style={styles.navigationHintCard}>
+                    <View style={styles.navigationHintContent}>
+                      <FontAwesome5 name="route" size={44} color="#334155" />
+                      <Text style={styles.navigationHintText}>{LABELS.routeHint}</Text>
                     </View>
                   </View>
-                ))}
-            </View>
+                )}
+              </View>
+            ) : null}
           </View>
         </Animated.View>
 
         <Pressable
-          style={styles.focusButton}
+          style={[styles.focusButton, { bottom: focusButtonBottom }]}
           onPress={focusMyLocation}
           accessibilityRole="button"
           accessibilityLabel={LABELS.focusMyLocation}
@@ -437,11 +575,17 @@ function App() {
           <MaterialIcons name="gps-fixed" size={22} color="#f8fafc" />
         </Pressable>
 
-        {locationError ? <Text style={styles.locationError}>{locationError}</Text> : null}
+        {locationError ? (
+          <Text style={[styles.locationError, { bottom: locationErrorBottom }]}>{locationError}</Text>
+        ) : null}
 
         <View
-          style={styles.bottomNav}
-          onLayout={(event) => setBottomNavWidth(event.nativeEvent.layout.width)}
+          style={[styles.bottomNav, { bottom: bottomNavBottom }]}
+          onLayout={(event) => {
+            const { width, height } = event.nativeEvent.layout
+            setBottomNavWidth(width)
+            setBottomNavHeight(height)
+          }}
         >
           {navIndicatorWidth > 0 ? (
             <Animated.View
@@ -571,7 +715,6 @@ const styles = StyleSheet.create({
   focusButton: {
     position: 'absolute',
     right: 12,
-    bottom: 92,
     backgroundColor: '#0f172a',
     width: 44,
     height: 44,
@@ -582,7 +725,6 @@ const styles = StyleSheet.create({
   locationError: {
     position: 'absolute',
     left: 12,
-    bottom: 74,
     backgroundColor: 'rgba(15, 23, 42, 0.9)',
     color: '#f8fafc',
     paddingHorizontal: 10,
@@ -611,7 +753,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 12,
     right: 12,
-    bottom: 12,
     flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.95)',
     borderRadius: NAVBAR_RADIUS,
@@ -662,8 +803,145 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
   },
+  navigationPanel: {
+    backgroundColor: 'transparent',
+    gap: 10,
+    flex: 1,
+  },
+  navigationInputCard: {
+    position: 'relative',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 10,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  navigationHintCard: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navigationHintContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    maxWidth: 320,
+  },
+  navigationHintText: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '600',
+    lineHeight: 19,
+    textAlign: 'center',
+  },
+  navigationHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  navigationPanelTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  navigationDistancePill: {
+    borderRadius: 999,
+    backgroundColor: '#e2e8f0',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  navigationDistancePillText: {
+    color: '#334155',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  navigationMetaRow: {
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  navigationMetaItem: {
+    flex: 1,
+  },
+  navigationMetaLabel: {
+    fontSize: 11,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  navigationMetaValue: {
+    marginTop: 2,
+    fontSize: 14,
+    color: '#0f172a',
+    fontWeight: '800',
+  },
+  navigationMetaDivider: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: '#e2e8f0',
+    marginHorizontal: 8,
+  },
+  navigationRouteCard: {
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 10,
+    gap: 6,
+  },
+  navigationRouteFrom: {
+    fontSize: 13,
+    color: '#0f172a',
+    fontWeight: '700',
+  },
+  navigationRouteLine: {
+    height: 1,
+    backgroundColor: '#cbd5e1',
+  },
+  navigationRouteTo: {
+    fontSize: 13,
+    color: '#0f172a',
+    fontWeight: '700',
+  },
+  navigationSteps: {
+    gap: 7,
+  },
+  navigationStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  navigationStepText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#334155',
+    fontWeight: '600',
+  },
+  navigationStartButton: {
+    marginTop: 2,
+    borderRadius: 12,
+    backgroundColor: '#0f172a',
+    height: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  navigationStartButtonText: {
+    color: '#f8fafc',
+    fontSize: 13,
+    fontWeight: '800',
+  },
   collapsibleContent: {
     padding: 12,
+    flex: 1,
   },
   transitButtonRow: {
     flexDirection: 'row',
