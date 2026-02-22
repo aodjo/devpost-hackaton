@@ -127,17 +127,10 @@ POST /warning/viewport
     },
     "places": [
         {
-            "id": 1,
-            "user_id": 1,
-            "name": "지하철역 계단",
             "latitude": 37.5650,
             "longitude": 126.9800,
-            "description": "가파른 계단",
             "type": "Stair",
-            "has_image": 1,
-            "verification_count": 3,
-            "created_at": "2024-01-01 12:00:00",
-            "updated_at": "2024-01-01 12:30:00"
+            "ids": [1, 5, 12]
         }
     ]
 }
