@@ -1,6 +1,7 @@
 import { Animated, Pressable, Text, View } from 'react-native'
 import Feather from '@expo/vector-icons/Feather'
 import { useTranslation } from 'react-i18next'
+import { useMemo } from 'react'
 
 function BottomNavBar({
   styles,
@@ -9,28 +10,32 @@ function BottomNavBar({
   bottomNavBottom,
   onLayout,
   navIndicatorWidth,
-  leftIndicatorAnim,
-  rightIndicatorAnim,
+  navIndicatorAnim,
+  navGroupWidth,
+  cameraAreaOffset,
 }) {
   const { t } = useTranslation()
 
   const leftItems = ['home', 'navigation']
   const rightItems = ['transit', 'profile']
-  const isLeftActive = leftItems.includes(activeTab)
-  const isRightActive = rightItems.includes(activeTab)
+
+  // 오른쪽 그룹용 인디케이터 위치: 글로벌 위치에서 오프셋 빼기
+  const rightIndicatorTransform = useMemo(() => {
+    return Animated.subtract(navIndicatorAnim, navGroupWidth + cameraAreaOffset)
+  }, [navIndicatorAnim, navGroupWidth, cameraAreaOffset])
 
   return (
     <View style={[styles.bottomNav, { bottom: bottomNavBottom }]} onLayout={onLayout}>
       {/* Left group: 홈, 내비게이션 */}
       <View style={styles.navGroup}>
-        {navIndicatorWidth > 0 && isLeftActive ? (
+        {navIndicatorWidth > 0 ? (
           <Animated.View
             pointerEvents="none"
             style={[
               styles.navIndicator,
               {
                 width: navIndicatorWidth,
-                transform: [{ translateX: leftIndicatorAnim }],
+                transform: [{ translateX: navIndicatorAnim }],
               },
             ]}
           />
@@ -51,14 +56,14 @@ function BottomNavBar({
 
       {/* Right group: 대중교통, 내 정보 */}
       <View style={styles.navGroup}>
-        {navIndicatorWidth > 0 && isRightActive ? (
+        {navIndicatorWidth > 0 ? (
           <Animated.View
             pointerEvents="none"
             style={[
               styles.navIndicator,
               {
                 width: navIndicatorWidth,
-                transform: [{ translateX: rightIndicatorAnim }],
+                transform: [{ translateX: rightIndicatorTransform }],
               },
             ]}
           />

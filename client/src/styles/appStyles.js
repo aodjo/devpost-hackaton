@@ -354,6 +354,7 @@ export const styles = StyleSheet.create({
     borderRadius: NAVBAR_RADIUS,
     padding: 4,
     position: 'relative',
+    overflow: 'hidden',
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
