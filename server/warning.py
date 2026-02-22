@@ -1,9 +1,12 @@
 import sqlite3
-from typing import List
+import os
 from db import get_db
-from fastapi import HTTPException
-from narwhals import List
-import json
+from fastapi import HTTPException, UploadFile, File
+from fastapi.responses import FileResponse 
+from PIL import Image, UnidentifiedImageError
+from pathlib import Path
+import shutil
+import io
 
 class request_WarningPlace(BaseModel):
     name: str
@@ -22,7 +25,7 @@ async def add_warning_place(
             "INSERT INTO warning_places (name, latitude, longitude, description) VALUES (?, ?, ?, ?)",
             (place.name, place.latitude, place.longitude, place.description),
         )
-        return {"message": "Warning place added successfully"}
+        return {"message": "Warning place added successfully", "id" : db.lastrowid}
     except type(db).OperationalError:
         raise HTTPException(status_code=500, detail="Database operational error")
     except:
@@ -64,5 +67,42 @@ async def get_id_warning_places(
         return {"message":"Warning places fetched successfully","place": place}
     except:
         raise HTTPException(status_code=500, detail="Failed to get warning place")
-    
+
+warning_place_img_path = os.getenv("WARNING_PLACE_IMG_PATH") or "./warning_place_img"  
+
 @app.post("/warning/update_place_img/{id}")
+async def update_warning_place_img(
+    id : int,
+    img : Uploadfile = File(...),
+) -> dict:
+    try:
+        data = await img.read()
+        im = Image.open(io.BytesIO(data))
+        im.verify()
+
+        orig_suffix = Path(".png").suffix
+
+        filename = f"{id}{orig_suffix}"
+        save_path = warning_place_img_path / filename
+
+        with save_path.open("wb") as f:
+            shutil.copyfileobj(img.file, f)
+
+        return {"message": "Warning place image updated successfully"}               
+    except UnidentfiedImageError:
+        return HTTPException(status_code=400, detail="Invalid image format")
+    
+    except:
+        return HTTPException(status_code=500, detail="Failed to update warning place image")       
+    
+@app.get("/warning/get_place_img/{id}")
+async def get_warning_place_img(
+    id : int,
+):
+    try:
+       path = warning_place_img_path / f"{id}.png"
+       if not path.is_file():
+           raise HTTPException(status_code=404, detail="Warning place image not found")
+       return FileResponse(path, media_type="image/png")
+    except:
+        raise HTTPException(status_code=500, detail="Failed to get warning place image")
