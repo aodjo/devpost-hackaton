@@ -14,12 +14,40 @@ import {
 } from 'react-native'
 import { MaterialIcons } from '@expo/vector-icons'
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5'
-import MapView, { Marker, UrlTile } from 'react-native-maps'
+import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps'
 import { useTranslation } from 'react-i18next'
 import { changeLanguage } from '../i18n'
 import Constants from 'expo-constants'
 
 const NAVIGATION_STEP_ICONS = ['trip-origin', 'turn-right', 'straight', 'flag']
+
+// Google Polyline 디코딩 함수
+function decodePolyline(encoded) {
+  const points = []
+  let index = 0, lat = 0, lng = 0
+
+  while (index < encoded.length) {
+    let shift = 0, result = 0, byte
+    do {
+      byte = encoded.charCodeAt(index++) - 63
+      result |= (byte & 0x1f) << shift
+      shift += 5
+    } while (byte >= 0x20)
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1)
+
+    shift = 0
+    result = 0
+    do {
+      byte = encoded.charCodeAt(index++) - 63
+      result |= (byte & 0x1f) << shift
+      shift += 5
+    } while (byte >= 0x20)
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1)
+
+    points.push({ latitude: lat / 1e5, longitude: lng / 1e5 })
+  }
+  return points
+}
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0'
 const GITHUB_URL = 'https://github.com/aodjo/devpost-hackaton'
 const GOOGLE_ICON_URI = 'https://img.icons8.com/?size=100&id=17949&format=png&color=000000'
@@ -235,14 +263,27 @@ function MapTabContent({
   onSelectBadge,
   originRef,
   originInput,
-  setOriginInput,
+  onOriginInputChange,
   destinationInput,
-  setDestinationInput,
+  onDestinationInputChange,
+  originAutocomplete,
+  destinationAutocomplete,
+  activeNavInput,
+  setActiveNavInput,
+  onSelectNavPlace,
+  onUseCurrentLocation,
+  originPlace,
+  destinationPlace,
+  routeData,
+  routeObstacles,
+  isLoadingRoute,
+  onClearRoute,
   setDividerCenterY,
   dividerCenterY,
   searchButtonHeight,
   onSearch,
   hasNavigationInputs,
+  hasRouteData,
   navigationSummary,
 
   // Floating controls + feedback
@@ -266,6 +307,12 @@ function MapTabContent({
     collapsedTranslateY + 48,
     screenHeight - minimizedPeekHeight,
   )
+
+  // 경로 좌표 계산
+  const routeCoordinates = useMemo(() => {
+    if (!routeData?.overview_polyline) return []
+    return decodePolyline(routeData.overview_polyline)
+  }, [routeData])
 
   // 패널이 화면 상단을 넘어가지 않도록 제한
   const maxKeyboardOffset = collapsedTranslateY - expandedTranslateY
@@ -425,6 +472,52 @@ function MapTabContent({
             </View>
           </Marker>
         ) : null}
+
+        {/* 경로 폴리라인 */}
+        {routeCoordinates.length > 0 ? (
+          <Polyline
+            coordinates={routeCoordinates}
+            strokeColor="#3b82f6"
+            strokeWidth={5}
+            lineDashPattern={[0]}
+          />
+        ) : null}
+
+        {/* 목적지 마커 */}
+        {destinationPlace && isNavigationTab ? (
+          <Marker
+            coordinate={{
+              latitude: destinationPlace.latitude,
+              longitude: destinationPlace.longitude,
+            }}
+            title={destinationPlace.name}
+          >
+            <View style={styles.destinationMarker}>
+              <MaterialIcons name="flag" size={28} color="#ef4444" />
+            </View>
+          </Marker>
+        ) : null}
+
+        {/* 장애물 마커 */}
+        {routeObstacles.map((obstacle) => (
+          <Marker
+            key={`obstacle-${obstacle.id}`}
+            coordinate={{
+              latitude: obstacle.latitude,
+              longitude: obstacle.longitude,
+            }}
+            title={obstacle.name}
+            description={obstacle.description}
+          >
+            <View style={styles.obstacleMarker}>
+              <MaterialIcons
+                name={obstacle.type === 'Stair' ? 'stairs' : obstacle.type === 'EV' ? 'elevator' : 'warning'}
+                size={20}
+                color="#fff"
+              />
+            </View>
+          </Marker>
+        ))}
       </MapView>
 
       {/* Top overlay: home search + map type switch */}
@@ -555,14 +648,40 @@ function MapTabContent({
             <View style={styles.navigationPanel}>
               <Text style={styles.panelTitle}>{t('panel.navigation')}</Text>
               <View style={styles.navigationInputCard}>
-                <TextInput
-                  ref={originRef}
-                  style={styles.input}
-                  value={originInput}
-                  onChangeText={setOriginInput}
-                  placeholder={t('search.originPlaceholder')}
-                  placeholderTextColor="#94a3b8"
-                />
+                <View style={styles.inputWithAutocomplete}>
+                  <TextInput
+                    ref={originRef}
+                    style={styles.input}
+                    value={originInput}
+                    onChangeText={onOriginInputChange}
+                    onFocus={() => setActiveNavInput('origin')}
+                    placeholder={t('search.originPlaceholder')}
+                    placeholderTextColor="#94a3b8"
+                  />
+                  {activeNavInput === 'origin' && !originInput.trim() ? (
+                    <Pressable style={styles.currentLocationButton} onPress={onUseCurrentLocation}>
+                      <MaterialIcons name="my-location" size={16} color="#3b82f6" />
+                      <Text style={styles.currentLocationText}>{t('navigation.useCurrentLocation')}</Text>
+                    </Pressable>
+                  ) : null}
+                  {activeNavInput === 'origin' && originAutocomplete.length > 0 ? (
+                    <View style={styles.navAutocompleteDropdown}>
+                      {originAutocomplete.slice(0, 4).map((prediction) => (
+                        <Pressable
+                          key={prediction.place_id}
+                          style={styles.navAutocompleteItem}
+                          onPress={() => onSelectNavPlace(prediction, 'origin')}
+                        >
+                          <MaterialIcons name="place" size={16} color="#64748b" />
+                          <View style={styles.navAutocompleteTextContainer}>
+                            <Text style={styles.navAutocompleteMainText}>{prediction.main_text}</Text>
+                            <Text style={styles.navAutocompleteSecondaryText} numberOfLines={1}>{prediction.secondary_text}</Text>
+                          </View>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
                 <View
                   style={styles.inputDivider}
                   onLayout={(event) => {
@@ -570,38 +689,72 @@ function MapTabContent({
                     setDividerCenterY(y + height / 2)
                   }}
                 />
-                <TextInput
-                  style={styles.input}
-                  value={destinationInput}
-                  onChangeText={setDestinationInput}
-                  placeholder={t('search.destinationPlaceholder')}
-                  placeholderTextColor="#94a3b8"
-                />
+                <View style={styles.inputWithAutocomplete}>
+                  <TextInput
+                    style={styles.input}
+                    value={destinationInput}
+                    onChangeText={onDestinationInputChange}
+                    onFocus={() => setActiveNavInput('destination')}
+                    placeholder={t('search.destinationPlaceholder')}
+                    placeholderTextColor="#94a3b8"
+                  />
+                  {activeNavInput === 'destination' && destinationAutocomplete.length > 0 ? (
+                    <View style={styles.navAutocompleteDropdown}>
+                      {destinationAutocomplete.slice(0, 4).map((prediction) => (
+                        <Pressable
+                          key={prediction.place_id}
+                          style={styles.navAutocompleteItem}
+                          onPress={() => onSelectNavPlace(prediction, 'destination')}
+                        >
+                          <MaterialIcons name="place" size={16} color="#64748b" />
+                          <View style={styles.navAutocompleteTextContainer}>
+                            <Text style={styles.navAutocompleteMainText}>{prediction.main_text}</Text>
+                            <Text style={styles.navAutocompleteSecondaryText} numberOfLines={1}>{prediction.secondary_text}</Text>
+                          </View>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
                 <Pressable
                   style={[
                     styles.searchButton,
                     dividerCenterY == null
                       ? styles.searchButtonFallback
                       : { top: dividerCenterY - searchButtonHeight / 2 },
+                    isLoadingRoute && styles.searchButtonLoading,
                   ]}
                   onPress={onSearch}
+                  disabled={isLoadingRoute}
                   accessibilityRole="button"
                   accessibilityLabel={t('search.search')}
                 >
-                  <MaterialIcons name="search" size={18} color="#f8fafc" />
+                  {isLoadingRoute ? (
+                    <MaterialIcons name="hourglass-empty" size={18} color="#f8fafc" />
+                  ) : (
+                    <MaterialIcons name="search" size={18} color="#f8fafc" />
+                  )}
                   <Text style={styles.searchButtonText}>{t('search.search')}</Text>
                 </Pressable>
               </View>
 
-              {hasNavigationInputs ? (
+              {hasRouteData ? (
                 <>
                   <View style={styles.navigationHeaderRow}>
                     <Text style={styles.navigationPanelTitle}>{t('navigation.panelTitle')}</Text>
                     <View style={styles.navigationDistancePill}>
                       <Text style={styles.navigationDistancePillText}>
-                        {t('navigation.distance')} {navigationSummary.distance}
+                        {navigationSummary.distance}
                       </Text>
                     </View>
+                    {!navigationSummary.isAccessible ? (
+                      <View style={styles.obstacleWarningPill}>
+                        <MaterialIcons name="warning" size={14} color="#fff" />
+                        <Text style={styles.obstacleWarningText}>
+                          {t('navigation.obstaclesFound', { count: navigationSummary.obstacleCount })}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
 
                   <View style={styles.navigationMetaRow}>
@@ -622,19 +775,42 @@ function MapTabContent({
                     <Text style={styles.navigationRouteTo}>{navigationSummary.to}</Text>
                   </View>
 
-                  <View style={styles.navigationSteps}>
-                    {navigationSteps.map((step) => (
-                      <View key={step.id} style={styles.navigationStepRow}>
-                        <MaterialIcons name={step.icon} size={17} color="#334155" />
-                        <Text style={styles.navigationStepText}>{step.text}</Text>
-                      </View>
-                    ))}
-                  </View>
+                  {/* 실제 경로 단계 표시 */}
+                  {routeData?.steps?.length > 0 ? (
+                    <View style={styles.navigationSteps}>
+                      {routeData.steps.slice(0, 5).map((step, index) => (
+                        <View key={`step-${index}`} style={styles.navigationStepRow}>
+                          <MaterialIcons
+                            name={step.maneuver?.includes('left') ? 'turn-left' : step.maneuver?.includes('right') ? 'turn-right' : index === 0 ? 'trip-origin' : index === routeData.steps.length - 1 ? 'flag' : 'straight'}
+                            size={17}
+                            color="#334155"
+                          />
+                          <View style={styles.navigationStepContent}>
+                            <Text style={styles.navigationStepText}>
+                              {step.instruction.replace(/<[^>]*>/g, '')}
+                            </Text>
+                            <Text style={styles.navigationStepDistance}>{step.distance}</Text>
+                          </View>
+                        </View>
+                      ))}
+                      {routeData.steps.length > 5 ? (
+                        <Text style={styles.navigationMoreSteps}>
+                          +{routeData.steps.length - 5} {t('navigation.moreSteps')}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
 
-                  <Pressable style={styles.navigationStartButton}>
-                    <MaterialIcons name="navigation" size={18} color="#f8fafc" />
-                    <Text style={styles.navigationStartButtonText}>{t('navigation.startGuidance')}</Text>
-                  </Pressable>
+                  <View style={styles.navigationButtonRow}>
+                    <Pressable style={styles.navigationClearButton} onPress={onClearRoute}>
+                      <MaterialIcons name="close" size={18} color="#64748b" />
+                      <Text style={styles.navigationClearButtonText}>{t('navigation.clearRoute')}</Text>
+                    </Pressable>
+                    <Pressable style={styles.navigationStartButton}>
+                      <MaterialIcons name="navigation" size={18} color="#f8fafc" />
+                      <Text style={styles.navigationStartButtonText}>{t('navigation.startGuidance')}</Text>
+                    </Pressable>
+                  </View>
                 </>
               ) : null}
             </View>
