@@ -177,6 +177,7 @@ POST /warning/get_place/
             "longitude": 126.9785,
             "description": "장애물 설명",
             "has_image": 1,
+            "verification_count": 5,
             "created_at": "2024-01-01 12:00:00",
             "updated_at": "2024-01-01 12:30:00"
         }
@@ -208,6 +209,7 @@ GET /warning/get_place/{place_id}
         "longitude": 126.9785,
         "description": "장애물 설명",
         "has_image": 1,
+        "verification_count": 5,
         "created_at": "2024-01-01 12:00:00",
         "updated_at": "2024-01-01 12:30:00"
     }
@@ -235,6 +237,73 @@ GET /warning/get_place_img/{place_id}
 
 #### Error Response
 - `404 Not Found`: 이미지를 찾을 수 없음
+
+---
+
+### 장애물 검증
+```
+POST /warning/verify/{place_id}
+```
+다른 사용자가 신고한 장애물이 실제로 존재하는지 검증합니다.
+
+#### Path Parameters
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| place_id | int | 장애물 고유 ID |
+
+#### Request Body
+```json
+{
+    "user_id": 2,
+    "is_valid": true
+}
+```
+
+#### Response (200 OK)
+```json
+{
+    "message": "Verification submitted successfully",
+    "place_id": 1,
+    "is_valid": true
+}
+```
+
+#### Error Response
+- `400 Bad Request`: 본인이 신고한 장애물 검증 불가
+- `400 Bad Request`: 이미 검증한 장애물
+- `404 Not Found`: 장애물을 찾을 수 없음
+
+---
+
+### 장애물 검증 내역 조회
+```
+GET /warning/verifications/{place_id}
+```
+
+#### Path Parameters
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| place_id | int | 장애물 고유 ID |
+
+#### Response (200 OK)
+```json
+{
+    "place_id": 1,
+    "verification_count": 5,
+    "verifications": [
+        {
+            "id": 1,
+            "user_id": 2,
+            "username": "검증자",
+            "is_valid": 1,
+            "created_at": "2024-01-02 10:00:00"
+        }
+    ]
+}
+```
+
+#### Error Response
+- `404 Not Found`: 장애물을 찾을 수 없음
 
 ---
 

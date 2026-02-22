@@ -29,12 +29,22 @@ def init_db() -> None:
                 longitude REAL NOT NULL,
                 description TEXT NOT NULL,
                 has_image INTEGER DEFAULT 0,
+                verification_count INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
             CREATE INDEX IF NOT EXISTS idx_warning_places_coords
                 ON warning_places(latitude, longitude);
+
+            CREATE TABLE IF NOT EXISTS verifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER REFERENCES users(id),
+                place_id INTEGER REFERENCES warning_places(id),
+                is_valid INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, place_id)
+            );
 
             CREATE TABLE IF NOT EXISTS user_badges (
                 user_id INTEGER REFERENCES users(id),
