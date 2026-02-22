@@ -650,7 +650,7 @@ function App() {
                 <Text style={styles.badgeModalTitle}>{selectedBadge.name}</Text>
                 <Text style={styles.badgeModalDescription}>{selectedBadge.description}</Text>
                 <Pressable 
-                  style={[styles.modalButton, styles.modalButtonSubmit]}
+                  style={[styles.modalButton, styles.modalButtonSubmit, styles.badgeModalCloseButton]}
                   onPress={() => setBadgeModalVisible(false)}
                 >
                   <Text style={styles.modalButtonSubmitText}>닫기</Text>
@@ -1041,6 +1041,14 @@ const styles = StyleSheet.create({
   },
   modalButtonCancel: {
     backgroundColor: '#e2e8f0',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    minHeight: 44,
+    width: '100%',
   },
   modalButtonCancelText: {
     fontSize: 15,
@@ -1059,14 +1067,14 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   modalButtonSubmitText: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#f8fafc',
   },
   badgeModalContainer: {
     backgroundColor: '#ffffff',
     borderRadius: 20,
-    padding: 24,
+    padding: 60,
     width: '85%',
     maxWidth: 320,
     alignItems: 'center',
@@ -1094,7 +1102,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#475569',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
+  },
+  badgeModalCloseButton: {
+    marginTop: 12,
+    width: '70%',
+    alignSelf: 'center',
   },
 })
 
