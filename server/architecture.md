@@ -90,54 +90,6 @@ GET /auth/me
 
 ## 장애물 제보 (Warning)
 
-### 지도 뷰포트 내 접근성 정보 조회
-```
-POST /warning/viewport
-```
-지도에서 보이는 영역(바운딩 박스) 내의 모든 접근성 정보를 조회합니다.
-
-#### Request Body
-```json
-{
-    "sw_latitude": 37.5600,
-    "sw_longitude": 126.9700,
-    "ne_latitude": 37.5700,
-    "ne_longitude": 126.9900,
-    "type": "Stair"
-}
-```
-
-| 필드 | 타입 | 필수 | 설명 |
-|-----|------|------|------|
-| sw_latitude | float | O | 남서쪽 위도 |
-| sw_longitude | float | O | 남서쪽 경도 |
-| ne_latitude | float | O | 북동쪽 위도 |
-| ne_longitude | float | O | 북동쪽 경도 |
-| type | string | X | 필터: `Stuff`, `Stair`, `EV` (없으면 전체) |
-
-#### Response (200 OK)
-```json
-{
-    "message": "Places retrieved successfully",
-    "stats": {
-        "total": 15,
-        "Stuff": 8,
-        "Stair": 4,
-        "EV": 3
-    },
-    "places": [
-        {
-            "latitude": 37.5650,
-            "longitude": 126.9800,
-            "type": "Stair",
-            "ids": [1, 5, 12]
-        }
-    ]
-}
-```
-
----
-
 ### 장애물 신고
 ```
 POST /warning/add_place
@@ -151,7 +103,7 @@ POST /warning/add_place
     "latitude": 37.5665,
     "longitude": 126.9780,
     "description": "제보 내용",
-    "type": "Stuff"
+    "type": "obstacle"
 }
 ```
 
@@ -162,7 +114,7 @@ POST /warning/add_place
 | latitude | float | O | 위도 |
 | longitude | float | O | 경도 |
 | description | string | O | 제보 내용 |
-| type | string | X | 타입: `Stuff`(기본), `Stair`, `EV` |
+| type | string | X | 타입: `obstacle`(기본), `stairs`, `elevator` |
 
 #### Response (200 OK)
 ```json
@@ -234,7 +186,7 @@ POST /warning/get_place/
             "latitude": 37.5670,
             "longitude": 126.9785,
             "description": "장애물 설명",
-            "type": "Stuff",
+            "type": "obstacle",
             "has_image": 1,
             "verification_count": 5,
             "created_at": "2024-01-01 12:00:00",
@@ -267,7 +219,7 @@ GET /warning/get_place/{place_id}
         "latitude": 37.5670,
         "longitude": 126.9785,
         "description": "장애물 설명",
-        "type": "Stuff",
+        "type": "obstacle",
         "has_image": 1,
         "verification_count": 5,
         "created_at": "2024-01-01 12:00:00",
