@@ -1,9 +1,9 @@
-import { StatusBar } from 'expo-status-bar'
+﻿import { StatusBar } from 'expo-status-bar'
 import Constants from 'expo-constants'
 import * as Location from 'expo-location'
 import { MaterialIcons } from '@expo/vector-icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Platform, Pressable, StyleSheet, Text, TextInput, View, Alert, Animated } from 'react-native'
 import MapView, { Marker, UrlTile } from 'react-native-maps'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -31,6 +31,8 @@ const LABELS = {
   profile: '\uB0B4 \uC815\uBCF4',
   road: '\uAC04\uB7B5',
   satellite: '\uC704\uC131',
+  bus: '\uBC84\uC2A4',
+  subway: '\uC9C0\uD558\ucca0',
   originPlaceholder: '\uCD9C\uBC1C\uC9C0 \uC785\uB825',
   destinationPlaceholder: '\uBAA9\uC801\uC9C0 \uC785\uB825',
   search: '\uAC80\uC0C9',
@@ -53,13 +55,59 @@ const NAVBAR_VERTICAL_PADDING = 8
 
 function App() {
   const mapRef = useRef(null)
+  const originRef = useRef(null)
+  const [collapseAnim] = useState(() => new Animated.Value(0))
   const [mapType, setMapType] = useState('roadmap')
   const [activeTab, setActiveTab] = useState(LABELS.home)
+  const [transitType, setTransitType] = useState('bus')
   const [originInput, setOriginInput] = useState('')
   const [destinationInput, setDestinationInput] = useState('')
   const [currentLocation, setCurrentLocation] = useState(null)
   const [locationError, setLocationError] = useState('')
   const [dividerCenterY, setDividerCenterY] = useState(null)
+
+  const transitRoutes = [
+    {
+      id: '1',
+      type: 'bus',
+      routeName: '142번',
+      arrivalTime: '3분',
+      destinationArrival: '18분',
+      stops: '5정류장',
+    },
+    {
+      id: '2',
+      type: 'bus',
+      routeName: '405번',
+      arrivalTime: '8분',
+      destinationArrival: '22분',
+      stops: '7정류장',
+    },
+    {
+      id: '3',
+      type: 'bus',
+      routeName: '720번',
+      arrivalTime: '12분',
+      destinationArrival: '25분',
+      stops: '6정류장',
+    },
+    {
+      id: '4',
+      type: 'subway',
+      routeName: '2호선',
+      arrivalTime: '2분',
+      destinationArrival: '15분',
+      stops: '3역',
+    },
+    {
+      id: '5',
+      type: 'subway',
+      routeName: '6호선',
+      arrivalTime: '7분',
+      destinationArrival: '20분',
+      stops: '4역',
+    },
+  ]
 
   const tileUrlTemplate = useMemo(() => {
     const normalizedBase = `${TILE_PROXY_BASE_URL}`.replace(/\/+$/, '')
@@ -145,6 +193,39 @@ function App() {
     }
   }
 
+  useEffect(() => {
+    if (activeTab === LABELS.navigation) {
+      originRef.current?.focus()
+    } else if (activeTab === LABELS.home) {
+      setMapType('roadmap')
+    } else if (activeTab === LABELS.profile) {
+      Alert.alert('Profile', 'Profile tab selected')
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    Animated.timing(collapseAnim, {
+      toValue: activeTab === LABELS.transit ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start()
+  }, [activeTab, collapseAnim])
+
+  const mapTypeRowAnimatedStyle = {
+    opacity: collapseAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [1, 0.6],
+    }),
+    transform: [
+      {
+        translateY: collapseAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 6],
+        }),
+      },
+    ],
+  }
+
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.mapWrapper}>
@@ -168,6 +249,7 @@ function App() {
         <View style={styles.topPanel}>
           <View style={styles.inputCard}>
             <TextInput
+              ref={originRef}
               style={styles.input}
               value={originInput}
               onChangeText={setOriginInput}
@@ -204,7 +286,7 @@ function App() {
             </Pressable>
           </View>
 
-          <View style={styles.mapTypeRow}>
+          <Animated.View style={[styles.mapTypeRow, mapTypeRowAnimatedStyle]}>
             <Pressable
               style={[
                 styles.mapTypeButton,
@@ -238,8 +320,86 @@ function App() {
                 {LABELS.satellite}
               </Text>
             </Pressable>
-          </View>
+          </Animated.View>
         </View>
+
+        <Animated.View
+          style={[
+            styles.collapsiblePanel,
+            {
+              transform: [
+                {
+                  translateY: collapseAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [600, 50],
+                  }),
+                },
+              ],
+            },
+          ]}
+          pointerEvents={activeTab === LABELS.transit ? 'auto' : 'none'}
+        >
+          <View style={styles.collapsibleContent}>
+            <View style={styles.transitButtonRow}>
+              <Pressable
+                style={[
+                  styles.mapTypeButton,
+                  transitType === 'bus' && styles.mapTypeButtonActive,
+                ]}
+                onPress={() => setTransitType('bus')}
+              >
+                <Text
+                  style={[
+                    styles.mapTypeButtonText,
+                    transitType === 'bus' && styles.mapTypeButtonTextActive,
+                  ]}
+                >
+                  {LABELS.bus}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.mapTypeButton,
+                  transitType === 'subway' && styles.mapTypeButtonActive,
+                ]}
+                onPress={() => setTransitType('subway')}
+              >
+                <Text
+                  style={[
+                    styles.mapTypeButtonText,
+                    transitType === 'subway' && styles.mapTypeButtonTextActive,
+                  ]}
+                >
+                  {LABELS.subway}
+                </Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.transitCardsContainer}>
+              {transitRoutes
+                .filter((route) => route.type === transitType)
+                .map((route) => (
+                  <View key={route.id} style={styles.transitCard}>
+                    <View style={styles.transitCardHeader}>
+                      <Text style={styles.routeName}>{route.routeName}</Text>
+                      <Text style={styles.arrivalTime}>{route.arrivalTime}</Text>
+                    </View>
+                    <View style={styles.transitCardBody}>
+                      <View style={styles.transitInfo}>
+                        <Text style={styles.transitLabel}>목적지 도착:</Text>
+                        <Text style={styles.transitValue}>{route.destinationArrival}</Text>
+                      </View>
+                      <View style={styles.transitInfo}>
+                        <Text style={styles.transitLabel}>경유:</Text>
+                        <Text style={styles.transitValue}>{route.stops}</Text>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+            </View>
+          </View>
+        </Animated.View>
 
         <Pressable
           style={styles.focusButton}
@@ -289,6 +449,8 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     gap: 8,
+    zIndex: 10,
+    elevation: 10,
   },
   inputCard: {
     position: 'relative',
@@ -412,6 +574,8 @@ const styles = StyleSheet.create({
     borderRadius: NAVBAR_RADIUS,
     paddingVertical: NAVBAR_VERTICAL_PADDING,
     paddingHorizontal: 6,
+    zIndex: 20,
+    elevation: 20,
   },
   navItem: {
     flex: 1,
@@ -427,6 +591,86 @@ const styles = StyleSheet.create({
   },
   navTextActive: {
     color: '#0f172a',
+  },
+  collapsiblePanel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 0,
+    minHeight: 550,
+    zIndex: 15,
+    elevation: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  collapsibleContent: {
+    padding: 12,
+  },
+  transitButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    gap: 8,
+    marginTop: 0,
+  },
+  collapsibleTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 6,
+  },
+  collapsibleText: {
+    fontSize: 13,
+    color: '#475569',
+  },
+  transitCardsContainer: {
+    marginTop: 16,
+    gap: 12,
+  },
+  transitCard: {
+    backgroundColor: 'rgba(15, 23, 42, 0.05)',
+    borderRadius: 12,
+    padding: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2563eb',
+  },
+  transitCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  routeName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  arrivalTime: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2563eb',
+  },
+  transitCardBody: {
+    gap: 6,
+  },
+  transitInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  transitLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  transitValue: {
+    fontSize: 12,
+    color: '#0f172a',
+    fontWeight: '600',
   },
 })
 
