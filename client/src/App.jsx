@@ -326,7 +326,7 @@ function App() {
                 value={placeQuery}
                 onChangeText={setPlaceQuery}
                 placeholder={LABELS.placeSearchPlaceholder}
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#475569"
                 returnKeyType="search"
                 onSubmitEditing={handlePlaceSearch}
               />
@@ -643,6 +643,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: '#0f172a',
+    fontWeight: '600',
     paddingHorizontal: 6,
     paddingVertical: 8,
   },
