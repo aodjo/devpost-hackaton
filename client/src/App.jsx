@@ -336,6 +336,7 @@ function App() {
             style={styles.map}
             mapType={Platform.OS === 'android' ? 'none' : 'standard'}
             initialRegion={INITIAL_REGION}
+            onPress={isBottomPanelTab ? () => handleNavPress(LABELS.home) : undefined}
           >
             <UrlTile urlTemplate={tileUrlTemplate} maximumZ={22} shouldReplaceMapContent />
             {currentLocation ? (
