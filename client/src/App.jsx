@@ -76,7 +76,8 @@ function App() {
   const [bottomNavWidth, setBottomNavWidth] = useState(0)
   const [bottomNavHeight, setBottomNavHeight] = useState(0)
   const [keyboardInset, setKeyboardInset] = useState(0)
-  const [navIndicatorAnim] = useState(() => new Animated.Value(0))
+  const [leftIndicatorAnim] = useState(() => new Animated.Value(0))
+  const [rightIndicatorAnim] = useState(() => new Animated.Value(0))
 
   const tileUrlTemplate = useMemo(() => {
     const normalizedBase = `${TILE_PROXY_BASE_URL}`.replace(/\/+$/, '')
@@ -369,12 +370,13 @@ function App() {
     })
   }, [isBottomPanelTab, collapseAnim, panelExpandAnim, panelMinimizeAnim])
 
-  const navItemKeys = ['home', 'navigation', 'transit', 'profile']
-  const activeNavIndex = Math.max(0, navItemKeys.indexOf(activeTab))
-  const navIndicatorWidth =
-    bottomNavWidth > 0
-      ? (bottomNavWidth - NAVBAR_HORIZONTAL_PADDING * 2) / navItemKeys.length
-      : 0
+  const leftNavItems = ['home', 'navigation']
+  const rightNavItems = ['transit', 'profile']
+  const leftActiveIndex = leftNavItems.indexOf(activeTab)
+  const rightActiveIndex = rightNavItems.indexOf(activeTab)
+  // 각 그룹 너비 = (전체 - 카메라버튼영역) / 2, 그룹 내 아이템 = 그룹너비 / 2
+  const navGroupWidth = bottomNavWidth > 0 ? (bottomNavWidth - 72) / 2 : 0
+  const navIndicatorWidth = navGroupWidth > 0 ? (navGroupWidth - 8) / 2 : 0
   const bottomNavBottom = insets.bottom + 12
   const panelBottomClearance = bottomNavHeight + bottomNavBottom + 8
   const focusButtonBottom = panelBottomClearance + 24
@@ -385,13 +387,24 @@ function App() {
       return
     }
 
-    Animated.spring(navIndicatorAnim, {
-      toValue: activeNavIndex * navIndicatorWidth,
-      useNativeDriver: true,
-      speed: 18,
-      bounciness: 0,
-    }).start()
-  }, [activeNavIndex, navIndicatorWidth, navIndicatorAnim])
+    if (leftActiveIndex >= 0) {
+      Animated.spring(leftIndicatorAnim, {
+        toValue: leftActiveIndex * navIndicatorWidth,
+        useNativeDriver: true,
+        speed: 18,
+        bounciness: 0,
+      }).start()
+    }
+
+    if (rightActiveIndex >= 0) {
+      Animated.spring(rightIndicatorAnim, {
+        toValue: rightActiveIndex * navIndicatorWidth,
+        useNativeDriver: true,
+        speed: 18,
+        bounciness: 0,
+      }).start()
+    }
+  }, [leftActiveIndex, rightActiveIndex, navIndicatorWidth, leftIndicatorAnim, rightIndicatorAnim])
 
   const mapTypeRowAnimatedStyle = {
     opacity: collapseAnim.interpolate({
@@ -583,13 +596,13 @@ function App() {
 
         <BottomNavBar
           styles={styles}
-          navItemKeys={navItemKeys}
           activeTab={activeTab}
           onPressNavItem={handleNavPress}
           bottomNavBottom={bottomNavBottom}
           onLayout={handleBottomNavLayout}
           navIndicatorWidth={navIndicatorWidth}
-          navIndicatorAnim={navIndicatorAnim}
+          leftIndicatorAnim={leftIndicatorAnim}
+          rightIndicatorAnim={rightIndicatorAnim}
         />
       </View>
       </KeyboardAvoidingView>
