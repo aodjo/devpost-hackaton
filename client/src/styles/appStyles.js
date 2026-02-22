@@ -1108,6 +1108,11 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 20,
   },
+  cameraOverlayAbsolute: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'space-between',
+    padding: 20,
+  },
   cameraTopControls: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1206,6 +1211,137 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#0f172a',
+  },
+
+  // Report Form styles
+  reportFormContainer: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  reportFormContent: {
+    padding: 20,
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+  reportPhotoPreview: {
+    position: 'relative',
+    width: 120,
+    height: 120,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 24,
+    alignSelf: 'center',
+  },
+  reportPhotoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  reportPhotoRetake: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportInputGroup: {
+    marginBottom: 20,
+  },
+  reportInputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#334155',
+    marginBottom: 8,
+  },
+  reportInput: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#0f172a',
+  },
+  reportInputMultiline: {
+    minHeight: 100,
+    paddingTop: 12,
+  },
+  reportTypeButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  reportTypeButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+  },
+  reportTypeButtonActive: {
+    backgroundColor: '#0f172a',
+    borderColor: '#0f172a',
+  },
+  reportTypeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  reportTypeButtonTextActive: {
+    color: '#f8fafc',
+  },
+  reportLocationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 10,
+    marginBottom: 24,
+  },
+  reportLocationText: {
+    fontSize: 13,
+    color: '#64748b',
+  },
+  reportActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  reportCancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 10,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportCancelButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  reportSubmitButton: {
+    flex: 2,
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 10,
+    backgroundColor: '#0f172a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportSubmitButtonDisabled: {
+    opacity: 0.6,
+  },
+  reportSubmitButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#f8fafc',
   },
 })
 

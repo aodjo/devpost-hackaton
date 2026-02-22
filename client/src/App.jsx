@@ -537,9 +537,11 @@ function App() {
           <CameraTabContent
             styles={styles}
             onClose={() => handleNavPress('home')}
+            currentLocation={currentLocation}
+            userData={userData}
           />
         ) : (
-        <MapTabContent
+          <MapTabContent
           styles={styles}
           insets={insets}
           mapRef={mapRef}
