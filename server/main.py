@@ -17,6 +17,7 @@ from db import init_db
 from warning import router as warning_router
 from badge import router as badge_router
 from auth import router as auth_router
+from places import router as places_router
 
 load_dotenv(Path(__file__).with_name(".env"))
 
@@ -95,6 +96,7 @@ app = FastAPI(title="Google Tiles Proxy", lifespan=lifespan)
 app.include_router(warning_router)
 app.include_router(badge_router)
 app.include_router(auth_router)
+app.include_router(places_router)
 
 _session_entries: dict[str, tuple[str, float]] = {}
 _session_locks: dict[str, asyncio.Lock] = {}
