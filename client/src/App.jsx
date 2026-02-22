@@ -53,6 +53,7 @@ function App() {
   const [originInput, setOriginInput] = useState('')
   const [destinationInput, setDestinationInput] = useState('')
   const [currentLocation, setCurrentLocation] = useState(null)
+  const [currentHeading, setCurrentHeading] = useState(null)
   const [locationError, setLocationError] = useState('')
   const [dividerCenterY, setDividerCenterY] = useState(null)
   const [loginModalVisible, setLoginModalVisible] = useState(false)
@@ -92,6 +93,7 @@ function App() {
 
   useEffect(() => {
     let watchSubscription
+    let headingSubscription
     let mounted = true
 
     const loadLoginData = async () => {
@@ -144,6 +146,13 @@ function App() {
           })
         },
       )
+
+      headingSubscription = await Location.watchHeadingAsync((headingData) => {
+        if (!mounted) {
+          return
+        }
+        setCurrentHeading(headingData.trueHeading ?? headingData.magHeading)
+      })
     }
 
     loadLoginData()
@@ -158,6 +167,9 @@ function App() {
       mounted = false
       if (watchSubscription) {
         watchSubscription.remove()
+      }
+      if (headingSubscription) {
+        headingSubscription.remove()
       }
     }
   }, [])
@@ -415,6 +427,7 @@ function App() {
             initialRegion={INITIAL_REGION}
             tileUrlTemplate={tileUrlTemplate}
             currentLocation={currentLocation}
+            currentHeading={currentHeading}
             isBottomPanelTab={isBottomPanelTab}
             onBackgroundPress={handleBackgroundPress}
             isHomeTab={isHomeTab}

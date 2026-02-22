@@ -27,6 +27,7 @@ function MapTabContent({
   initialRegion,
   tileUrlTemplate,
   currentLocation,
+  currentHeading,
   isBottomPanelTab,
   onBackgroundPress,
 
@@ -213,9 +214,26 @@ function MapTabContent({
       >
         <UrlTile urlTemplate={tileUrlTemplate} maximumZ={22} shouldReplaceMapContent />
         {currentLocation ? (
-          <Marker coordinate={currentLocation} tracksViewChanges={false}>
-            <View style={styles.locationDotOuter}>
-              <View style={styles.locationDotInner} />
+          <Marker
+            coordinate={currentLocation}
+            tracksViewChanges={true}
+            anchor={{ x: 0.5, y: 0.5 }}
+            zIndex={999}
+          >
+            <View style={styles.locationMarkerContainer}>
+              {currentHeading != null ? (
+                <View
+                  style={[
+                    styles.headingConeWrapper,
+                    { transform: [{ rotate: `${currentHeading}deg` }] },
+                  ]}
+                >
+                  <View style={styles.headingConeShape} />
+                </View>
+              ) : null}
+              <View style={styles.locationDotOuter}>
+                <View style={styles.locationDotInner} />
+              </View>
             </View>
           </Marker>
         ) : null}
