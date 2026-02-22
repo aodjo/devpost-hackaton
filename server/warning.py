@@ -8,16 +8,21 @@ from pathlib import Path
 import shutil
 import io
 
-class request_WarningPlace(BaseModel):
+class request_Add_WarningPlace(BaseModel):
     name: str
     latitude: float
     longitude: float
     description: str
 
+class request_list_WarningPlace():
+    origin_latitude: float
+    origin_longitude: float
+    endpoint_latitude: float
+    endpoint_longitude: float
 
 @app.post("/warning/add_place")
 async def add_warning_place(
-    place: request_WarningPlace,
+    place: request_Add_WarningPlace,
     db: AsyncIOMotorDatabase = Depends(get_database),
 ) -> dict:
     try:
@@ -31,18 +36,15 @@ async def add_warning_place(
     except:
         raise HTTPException(status_code=500, detail="Failed to add warning place")
     
-@app.get("/warning/get_place/{origin_latitude}/{origin_longitude}/{endpoint_latitude}/{endpoint_longitude}")
+@app.post("/warning/get_place/")
 async def get_warning_places(
-    origin_latitude: float,
-    origin_longitude: float,
-    endpoint_latitude: float,
-    endpoint_longitude: float,
+    place: request_list_WarningPlace,
     db: AsyncIOMotorDatabase = Depends(get_database),
 ) -> dict:
-    max_latitiude = max(origin_latitude, endpoint_latitude) + 0.001
-    min_latitude = min(origin_latitude, endpoint_latitude) - 0.001
-    max_longitude = max(origin_longitude, endpoint_longitude) + 0.001
-    min_longitude = min(origin_longitude, endpoint_longitude) - 0.001
+    max_latitiude = max(place.origin_latitude, place.endpoint_latitude) + 0.001
+    min_latitude = min(place.origin_latitude, place.endpoint_latitude) - 0.001
+    max_longitude = max(place.origin_longitude, place.endpoint_longitude) + 0.001
+    min_longitude = min(place.origin_longitude, place.endpoint_longitude) - 0.001
 
     try:
         list = db.execute(
@@ -76,6 +78,12 @@ async def update_warning_place_img(
     img : Uploadfile = File(...),
 ) -> dict:
     try:
+        if image.content_type != "image/png":
+            raise HTTPException(status_code=415, detail="PNG만 업로드 가능합니다 (content-type).")
+        
+        if not (image.filename or "").lower().endswith(".png"):
+            raise HTTPException(status_code=415, detail="PNG만 업로드 가능합니다 (확장자).")
+
         data = await img.read()
         im = Image.open(io.BytesIO(data))
         im.verify()
