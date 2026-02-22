@@ -18,6 +18,10 @@ def init_db() -> None:
                 obstacles_reported INTEGER DEFAULT 0,
                 photos_uploaded INTEGER DEFAULT 0,
                 verifications INTEGER DEFAULT 0,
+                stairs_reported INTEGER DEFAULT 0,
+                elevators_reported INTEGER DEFAULT 0,
+                consecutive_days INTEGER DEFAULT 0,
+                last_report_date TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -28,13 +32,24 @@ def init_db() -> None:
                 latitude REAL NOT NULL,
                 longitude REAL NOT NULL,
                 description TEXT NOT NULL,
+                type TEXT DEFAULT 'obstacle',
                 has_image INTEGER DEFAULT 0,
+                verification_count INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
             CREATE INDEX IF NOT EXISTS idx_warning_places_coords
                 ON warning_places(latitude, longitude);
+
+            CREATE TABLE IF NOT EXISTS verifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER REFERENCES users(id),
+                place_id INTEGER REFERENCES warning_places(id),
+                is_valid INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, place_id)
+            );
 
             CREATE TABLE IF NOT EXISTS user_badges (
                 user_id INTEGER REFERENCES users(id),
