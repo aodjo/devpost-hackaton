@@ -1,7 +1,9 @@
 import asyncio
+import hashlib
 import os
 import re
 import time
+from collections import OrderedDict
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,11 +29,65 @@ SESSION_FALLBACK_TTL_SECONDS = int(os.getenv("SESSION_FALLBACK_TTL_SECONDS", "60
 MAX_ZOOM = int(os.getenv("MAX_ZOOM", "22"))
 SESSION_REFRESH_GRACE_SECONDS = int(os.getenv("SESSION_REFRESH_GRACE_SECONDS", "60"))
 MAX_SESSION_CACHE_SIZE = int(os.getenv("MAX_SESSION_CACHE_SIZE", "128"))
+TILE_CACHE_SIZE = int(os.getenv("TILE_CACHE_SIZE", "1000"))
+TILE_CACHE_TTL_SECONDS = int(os.getenv("TILE_CACHE_TTL_SECONDS", "3600"))
+
+_http_client: httpx.AsyncClient | None = None
+
+
+def _get_http_client() -> httpx.AsyncClient:
+    if _http_client is None:
+        raise RuntimeError("HTTP client not initialized")
+    return _http_client
+
+
+class TileCache:
+    def __init__(self, max_size: int, ttl_seconds: int):
+        self.max_size = max_size
+        self.ttl_seconds = ttl_seconds
+        self._cache: OrderedDict[str, tuple[bytes, str, float]] = OrderedDict()
+        self._lock = asyncio.Lock()
+
+    def _make_key(self, z: int, x: int, y: int, map_type: str, lang: str, region: str) -> str:
+        return f"{z}/{x}/{y}/{map_type}/{lang}/{region}"
+
+    async def get(self, z: int, x: int, y: int, map_type: str, lang: str, region: str) -> tuple[bytes, str] | None:
+        key = self._make_key(z, x, y, map_type, lang, region)
+        async with self._lock:
+            if key not in self._cache:
+                return None
+            content, content_type, timestamp = self._cache[key]
+            if time.time() - timestamp > self.ttl_seconds:
+                del self._cache[key]
+                return None
+            self._cache.move_to_end(key)
+            return content, content_type
+
+    async def set(self, z: int, x: int, y: int, map_type: str, lang: str, region: str, content: bytes, content_type: str):
+        key = self._make_key(z, x, y, map_type, lang, region)
+        async with self._lock:
+            if key in self._cache:
+                del self._cache[key]
+            self._cache[key] = (content, content_type, time.time())
+            while len(self._cache) > self.max_size:
+                self._cache.popitem(last=False)
+
+
+_tile_cache = TileCache(TILE_CACHE_SIZE, TILE_CACHE_TTL_SECONDS)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global _http_client
     init_db()
+    _http_client = httpx.AsyncClient(
+        timeout=TILE_TIMEOUT_SECONDS,
+        http2=True,
+        limits=httpx.Limits(max_keepalive_connections=20, max_connections=100),
+    )
     yield
+    await _http_client.aclose()
+    _http_client = None
 
 
 app = FastAPI(title="Google Tiles Proxy", lifespan=lifespan)
@@ -132,8 +188,8 @@ async def _create_google_session(map_type: str, language: str, region: str) -> t
     }
     url = f"https://tile.googleapis.com/v1/createSession?key={GOOGLE_MAPS_API_KEY}"
 
-    async with httpx.AsyncClient(timeout=TILE_TIMEOUT_SECONDS) as client:
-        response = await client.post(url, json=payload)
+    client = _get_http_client()
+    response = await client.post(url, json=payload)
 
     if response.status_code >= 400:
         raise HTTPException(
@@ -199,8 +255,8 @@ async def _fetch_tile(
         f"?session={session}&key={GOOGLE_MAPS_API_KEY}"
     )
 
-    async with httpx.AsyncClient(timeout=TILE_TIMEOUT_SECONDS) as client:
-        return await client.get(url)
+    client = _get_http_client()
+    return await client.get(url)
 
 
 @app.get("/health", response_class=PlainTextResponse)
@@ -223,6 +279,21 @@ async def tile_proxy(
     tile_region = _normalize_region(region)
     map_type = _normalize_map_type(mapType)
 
+    cached = await _tile_cache.get(z, x, y, map_type, tile_language, tile_region)
+    if cached:
+        content, content_type = cached
+        return Response(
+            content=content,
+            media_type=content_type,
+            headers={
+                "Cache-Control": f"public, max-age={TILE_CACHE_TTL_SECONDS}",
+                "X-Tile-Proxy": "google-map-tiles",
+                "X-Tile-Language": tile_language,
+                "X-Tile-Region": tile_region,
+                "X-Cache": "HIT",
+            },
+        )
+
     response = await _fetch_tile(z, x, y, map_type, tile_language, tile_region)
     if response.status_code in (401, 403):
         response = await _fetch_tile(
@@ -242,16 +313,19 @@ async def tile_proxy(
         )
 
     content_type = response.headers.get("content-type", "image/png")
-    cache_control = response.headers.get("cache-control", "public, max-age=3600")
+    content = response.content
+
+    await _tile_cache.set(z, x, y, map_type, tile_language, tile_region, content, content_type)
 
     return Response(
-        content=response.content,
+        content=content,
         media_type=content_type,
         headers={
-            "Cache-Control": cache_control,
+            "Cache-Control": f"public, max-age={TILE_CACHE_TTL_SECONDS}",
             "X-Tile-Proxy": "google-map-tiles",
             "X-Tile-Language": tile_language,
             "X-Tile-Region": tile_region,
+            "X-Cache": "MISS",
         },
     )
 if __name__ == "__main__":
