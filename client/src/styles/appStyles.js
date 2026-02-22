@@ -371,65 +371,17 @@ export const styles = StyleSheet.create({
     padding: 12,
     flexGrow: 1,
   },
-  transitButtonRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    gap: 8,
-    marginTop: 0,
-  },
-  collapsibleTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 6,
-  },
-  collapsibleText: {
-    fontSize: 13,
-    color: '#475569',
-  },
-  transitCardsContainer: {
-    marginTop: 16,
+  transitUnavailableContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 12,
   },
-  transitCard: {
-    backgroundColor: 'rgba(15, 23, 42, 0.05)',
-    borderRadius: 12,
-    padding: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#2563eb',
-  },
-  transitCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  routeName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  arrivalTime: {
+  transitUnavailableText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#2563eb',
-  },
-  transitCardBody: {
-    gap: 6,
-  },
-  transitInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  transitLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '600',
-  },
-  transitValue: {
-    fontSize: 12,
-    color: '#0f172a',
-    fontWeight: '600',
+    color: '#334155',
+    fontWeight: '700',
+    textAlign: 'center',
   },
   profileContainer: {
     flex: 1,
