@@ -80,6 +80,8 @@ function App() {
   const [navIndicatorAnim] = useState(() => new Animated.Value(0))
   const [obstacles, setObstacles] = useState([])
   const [mapRegion, setMapRegion] = useState(null)
+  const [selectedObstacle, setSelectedObstacle] = useState(null)
+  const [isLoadingObstacle, setIsLoadingObstacle] = useState(false)
   const obstaclesFetchTimeoutRef = useRef(null)
 
   const tileUrlTemplate = useMemo(() => {
@@ -378,6 +380,34 @@ function App() {
     }, 500)
   }, [fetchObstacles])
 
+  const handleObstaclePress = useCallback(async (obstacle) => {
+    if (!obstacle.ids || obstacle.ids.length === 0) return
+
+    setIsLoadingObstacle(true)
+    try {
+      // 첫 번째 ID의 상세 정보 가져오기
+      const placeId = obstacle.ids[0]
+      const response = await fetch(`${API_BASE_URL}/warning/get_place/${placeId}`)
+      const data = await response.json()
+
+      if (data.place) {
+        setSelectedObstacle({
+          ...data.place,
+          imageUrl: data.place.has_image ? `${API_BASE_URL}/warning/get_place_img/${placeId}` : null,
+          totalCount: obstacle.ids.length,
+        })
+      }
+    } catch {
+      // Ignore errors
+    } finally {
+      setIsLoadingObstacle(false)
+    }
+  }, [])
+
+  const handleCloseObstacle = useCallback(() => {
+    setSelectedObstacle(null)
+  }, [])
+
   useEffect(() => {
     if (activeTab === 'navigation') {
       originRef.current?.focus()
@@ -621,6 +651,10 @@ function App() {
           onBackgroundPress={handleBackgroundPress}
           obstacles={obstacles}
           onRegionChangeComplete={handleRegionChangeComplete}
+          onObstaclePress={handleObstaclePress}
+          selectedObstacle={selectedObstacle}
+          isLoadingObstacle={isLoadingObstacle}
+          onCloseObstacle={handleCloseObstacle}
           isHomeTab={isHomeTab}
           placeQuery={placeQuery}
           onPlaceQueryChange={handlePlaceQueryChange}

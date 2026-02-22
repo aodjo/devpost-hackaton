@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
+  ActivityIndicator,
   Animated,
   Image,
   Linking,
@@ -198,6 +199,10 @@ function MapTabContent({
   onBackgroundPress,
   obstacles = [],
   onRegionChangeComplete,
+  onObstaclePress,
+  selectedObstacle,
+  isLoadingObstacle,
+  onCloseObstacle,
 
   // Home search
   isHomeTab,
@@ -398,6 +403,7 @@ function MapTabContent({
         <UrlTile urlTemplate={tileUrlTemplate} maximumZ={22} shouldReplaceMapContent />
         {currentLocation ? (
           <Marker
+            key={`location-${currentLocation.latitude}-${currentLocation.longitude}`}
             coordinate={currentLocation}
             tracksViewChanges={true}
             anchor={{ x: 0.5, y: 0.5 }}
@@ -445,6 +451,7 @@ function MapTabContent({
               }}
               anchor={{ x: 0.5, y: 0.5 }}
               tracksViewChanges={true}
+              onPress={() => onObstaclePress?.(obstacle)}
             >
               <View style={[styles.obstacleMarker, { backgroundColor: config.bgColor, borderColor: config.color }]}>
                 <FontAwesome5 name={config.icon} size={14} color={config.color} solid />
@@ -786,11 +793,55 @@ function MapTabContent({
         </View>
       ) : null}
 
+      {/* Obstacle detail panel */}
+      {selectedObstacle && isHomeTab ? (
+        <View style={[styles.obstacleInfoPanel, { bottom: panelBottomClearance }]}>
+          {isLoadingObstacle ? (
+            <View style={styles.obstacleInfoLoading}>
+              <ActivityIndicator size="small" color="#3b82f6" />
+            </View>
+          ) : (
+            <>
+              {/* Type badge */}
+              <View style={[styles.obstacleInfoTypeBadge, { backgroundColor: OBSTACLE_CONFIG[selectedObstacle.type]?.color || '#f59e0b' }]}>
+                <FontAwesome5 name={OBSTACLE_CONFIG[selectedObstacle.type]?.icon || 'exclamation-triangle'} size={12} color="#fff" solid />
+                <Text style={styles.obstacleInfoTypeBadgeText}>{t(`report.types.${selectedObstacle.type}`)}</Text>
+                {selectedObstacle.totalCount > 1 ? (
+                  <Text style={styles.obstacleInfoTypeBadgeCount}>+{selectedObstacle.totalCount - 1}</Text>
+                ) : null}
+              </View>
+
+              <View style={styles.obstacleInfoHeader}>
+                <Text style={styles.obstacleInfoName}>{selectedObstacle.name}</Text>
+                <Pressable style={styles.obstacleInfoCloseButton} onPress={onCloseObstacle}>
+                  <MaterialIcons name="close" size={20} color="#64748b" />
+                </Pressable>
+              </View>
+
+              {selectedObstacle.description ? (
+                <Text style={styles.obstacleInfoDescription}>{selectedObstacle.description}</Text>
+              ) : null}
+
+              {selectedObstacle.imageUrl ? (
+                <Image source={{ uri: selectedObstacle.imageUrl }} style={styles.obstacleInfoImage} />
+              ) : null}
+
+              <View style={styles.obstacleInfoMeta}>
+                <View style={styles.obstacleInfoMetaItem}>
+                  <MaterialIcons name="verified" size={14} color="#64748b" />
+                  <Text style={styles.obstacleInfoMetaText}>{selectedObstacle.verification_count || 0} {t('obstacle.verifications')}</Text>
+                </View>
+              </View>
+            </>
+          )}
+        </View>
+      ) : null}
+
       {/* Floating "focus my location" button */}
       <Pressable
         style={[
           styles.focusButton,
-          { bottom: selectedPlace && isHomeTab ? panelBottomClearance + 180 : focusButtonBottom },
+          { bottom: (selectedPlace || selectedObstacle) && isHomeTab ? panelBottomClearance + 180 : focusButtonBottom },
         ]}
         onPress={onFocusMyLocation}
         accessibilityRole="button"
