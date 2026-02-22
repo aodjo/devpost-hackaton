@@ -375,7 +375,7 @@ function App() {
   const leftActiveIndex = leftNavItems.indexOf(activeTab)
   const rightActiveIndex = rightNavItems.indexOf(activeTab)
   // 각 그룹 너비 = (전체 - 카메라버튼영역) / 2, 그룹 내 아이템 = 그룹너비 / 2
-  const navGroupWidth = bottomNavWidth > 0 ? (bottomNavWidth - 72) / 2 : 0
+  const navGroupWidth = bottomNavWidth > 0 ? (bottomNavWidth - 80) / 2 : 0
   const navIndicatorWidth = navGroupWidth > 0 ? (navGroupWidth - 8) / 2 : 0
   const bottomNavBottom = insets.bottom + 12
   const panelBottomClearance = bottomNavHeight + bottomNavBottom + 8

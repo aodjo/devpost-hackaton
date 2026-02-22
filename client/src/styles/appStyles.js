@@ -345,7 +345,6 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     zIndex: 20,
-    elevation: 20,
     gap: 8,
   },
   navGroup: {
@@ -355,6 +354,11 @@ export const styles = StyleSheet.create({
     borderRadius: NAVBAR_RADIUS,
     padding: 4,
     position: 'relative',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   navIndicator: {
     position: 'absolute',
@@ -373,13 +377,13 @@ export const styles = StyleSheet.create({
     zIndex: 1,
   },
   navCameraButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: '#0f172a',
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 8,
+    marginHorizontal: 6,
     zIndex: 2,
   },
   navText: {

@@ -16,15 +16,14 @@ function BottomNavBar({
 
   const leftItems = ['home', 'navigation']
   const rightItems = ['transit', 'profile']
-
-  const leftActiveIndex = leftItems.indexOf(activeTab)
-  const rightActiveIndex = rightItems.indexOf(activeTab)
+  const isLeftActive = leftItems.includes(activeTab)
+  const isRightActive = rightItems.includes(activeTab)
 
   return (
     <View style={[styles.bottomNav, { bottom: bottomNavBottom }]} onLayout={onLayout}>
       {/* Left group: 홈, 내비게이션 */}
       <View style={styles.navGroup}>
-        {navIndicatorWidth > 0 && leftActiveIndex >= 0 ? (
+        {navIndicatorWidth > 0 && isLeftActive ? (
           <Animated.View
             pointerEvents="none"
             style={[
@@ -47,12 +46,12 @@ function BottomNavBar({
 
       {/* Center: 카메라 버튼 */}
       <Pressable style={styles.navCameraButton} onPress={() => onPressNavItem('camera')}>
-        <Feather name="camera" size={18} color="#f8fafc" />
+        <Feather name="camera" size={24} color="#f8fafc" />
       </Pressable>
 
       {/* Right group: 대중교통, 내 정보 */}
       <View style={styles.navGroup}>
-        {navIndicatorWidth > 0 && rightActiveIndex >= 0 ? (
+        {navIndicatorWidth > 0 && isRightActive ? (
           <Animated.View
             pointerEvents="none"
             style={[
