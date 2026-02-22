@@ -2,7 +2,7 @@
 import Constants from 'expo-constants'
 import * as Location from 'expo-location'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Animated, View } from 'react-native'
+import { Alert, Animated, Dimensions, Keyboard, KeyboardAvoidingView, Platform, View } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import AppModals from './components/AppModals'
@@ -36,6 +36,7 @@ const TILE_REGION =
 const TILE_QUERY = TILE_REGION
   ? `lang=${encodeURIComponent(TILE_LANGUAGE)}&region=${encodeURIComponent(TILE_REGION)}`
   : `lang=${encodeURIComponent(TILE_LANGUAGE)}`
+const ANDROID_KEYBOARD_EXTRA_OFFSET = 0
 
 function App() {
   const insets = useSafeAreaInsets()
@@ -70,6 +71,7 @@ function App() {
   ])
   const [bottomNavWidth, setBottomNavWidth] = useState(0)
   const [bottomNavHeight, setBottomNavHeight] = useState(0)
+  const [keyboardInset, setKeyboardInset] = useState(0)
   const [navIndicatorAnim] = useState(() => new Animated.Value(0))
 
   const transitRoutes = [
@@ -237,6 +239,31 @@ function App() {
     }
   }, [activeTab])
 
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return undefined
+    }
+
+    const showSubscription = Keyboard.addListener('keyboardDidShow', (event) => {
+      const windowHeight = Dimensions.get('window').height
+      const keyboardHeight = event.endCoordinates?.height ?? 0
+      const keyboardScreenY = event.endCoordinates?.screenY ?? windowHeight
+      const overlapByScreenY = Math.max(0, windowHeight - keyboardScreenY)
+      const resolvedKeyboardInset = Math.max(keyboardHeight, overlapByScreenY)
+      setKeyboardInset(
+        Math.max(0, resolvedKeyboardInset - insets.bottom + ANDROID_KEYBOARD_EXTRA_OFFSET),
+      )
+    })
+    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardInset(0)
+    })
+
+    return () => {
+      showSubscription.remove()
+      hideSubscription.remove()
+    }
+  }, [insets.bottom])
+
   const handleNavPress = (item) => {
     setActiveTab(item)
     if (item === LABELS.home || item === LABELS.navigation) {
@@ -248,6 +275,7 @@ function App() {
   const isTransitTab = activeTab === LABELS.transit
   const isNavigationTab = activeTab === LABELS.navigation
   const isBottomPanelTab = isTransitTab || isNavigationTab
+  const androidKeyboardInset = Platform.OS === 'android' ? keyboardInset : 0
 
   useEffect(() => {
     Animated.timing(collapseAnim, {
@@ -415,7 +443,12 @@ function App() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right']}>
-      <View style={styles.mapWrapper}>
+      <KeyboardAvoidingView
+        style={styles.mapWrapper}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
+      >
+      <View style={[styles.mapWrapper, androidKeyboardInset > 0 ? { marginBottom: androidKeyboardInset } : null]}>
         {activeTab !== LABELS.profile ? (
           <MapTabContent
             styles={styles}
@@ -465,6 +498,7 @@ function App() {
             locationError={locationError}
             locationErrorBottom={locationErrorBottom}
             labels={LABELS}
+            keyboardInset={androidKeyboardInset}
           />
         ) : (
           <ProfileTabContent
@@ -490,6 +524,7 @@ function App() {
           navIndicatorAnim={navIndicatorAnim}
         />
       </View>
+      </KeyboardAvoidingView>
 
       <StatusBar style="auto" />
 

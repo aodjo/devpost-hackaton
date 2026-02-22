@@ -4,6 +4,7 @@ import {
   PanResponder,
   Platform,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   useWindowDimensions,
@@ -76,6 +77,9 @@ function MapTabContent({
   onFocusMyLocation,
   locationError,
   locationErrorBottom,
+
+  // Keyboard
+  keyboardInset = 0,
 }) {
   const topPanelTop = insets.top + 12
   const [mapTypeRowBottom, setMapTypeRowBottom] = useState(topPanelTop + 44)
@@ -83,10 +87,18 @@ function MapTabContent({
   const hiddenTranslateY = screenHeight
   const collapsedTranslateY = Math.max(180, Math.round(screenHeight * 0.42))
   const expandedTranslateY = mapTypeRowBottom + 8
+  const minimizedPeekHeight = panelBottomClearance + 48
   const minimizedTranslateY = Math.max(
     collapsedTranslateY + 48,
-    screenHeight - (insets.bottom + 156),
+    screenHeight - minimizedPeekHeight,
   )
+
+  // 패널이 화면 상단을 넘어가지 않도록 제한
+  const maxKeyboardOffset = collapsedTranslateY - expandedTranslateY
+  const keyboardOffset = keyboardInset > 0 ? -Math.min(keyboardInset, maxKeyboardOffset) : 0
+
+  // 내비게이션 힌트 표시 여부
+  const showNavigationHint = isNavigationTab && !hasNavigationInputs
 
   const panelPanResponder = useMemo(
     () =>
@@ -99,13 +111,17 @@ function MapTabContent({
         onPanResponderRelease: (_, gestureState) => {
           const absDy = Math.abs(gestureState.dy)
           const absDx = Math.abs(gestureState.dx)
+          const swipeThreshold = 12
+          const strongSwipeThreshold = 96
+          const velocityThreshold = 0.25
+          const strongVelocityThreshold = 0.9
 
           if (absDy < 6 && absDx < 6) {
             onTogglePanel()
             return
           }
 
-          if (gestureState.dy < -12 || gestureState.vy < -0.25) {
+          if (gestureState.dy < -swipeThreshold || gestureState.vy < -velocityThreshold) {
             if (isPanelMinimized) {
               onCollapsePanel()
               return
@@ -115,8 +131,16 @@ function MapTabContent({
             return
           }
 
-          if (gestureState.dy > 12 || gestureState.vy > 0.25) {
+          if (gestureState.dy > swipeThreshold || gestureState.vy > velocityThreshold) {
             if (isPanelExpanded) {
+              if (
+                gestureState.dy > strongSwipeThreshold ||
+                gestureState.vy > strongVelocityThreshold
+              ) {
+                onMinimizePanel()
+                return
+              }
+
               onCollapsePanel()
               return
             }
@@ -126,6 +150,11 @@ function MapTabContent({
           }
 
           if (isPanelExpanded) {
+            onCollapsePanel()
+            return
+          }
+
+          if (isPanelMinimized) {
             onCollapsePanel()
             return
           }
@@ -244,9 +273,8 @@ function MapTabContent({
           styles.collapsiblePanel,
           {
             transform: [
-              {
-                translateY: panelTranslateY,
-              },
+              { translateY: panelTranslateY },
+              { translateY: keyboardOffset },
             ],
           },
         ]}
@@ -259,7 +287,16 @@ function MapTabContent({
           <View style={styles.panelHandle} />
         </View>
 
-        <View style={[styles.collapsibleContent, { paddingBottom: panelBottomClearance }]}>
+        <ScrollView
+          style={styles.collapsibleContent}
+          contentContainerStyle={[
+            styles.collapsibleContentInner,
+            { paddingBottom: panelBottomClearance },
+          ]}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="always"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Transit tab content */}
           {isTransitTab ? (
             <>
@@ -396,17 +433,31 @@ function MapTabContent({
                     <Text style={styles.navigationStartButtonText}>{labels.startGuidance}</Text>
                   </Pressable>
                 </>
-              ) : (
-                <View style={styles.navigationHintCard}>
-                  <View style={styles.navigationHintContent}>
-                    <FontAwesome5 name="route" size={44} color="#334155" />
-                    <Text style={styles.navigationHintText}>{labels.routeHint}</Text>
-                  </View>
-                </View>
-              )}
+              ) : null}
             </View>
           ) : null}
-        </View>
+        </ScrollView>
+
+        {/* 내비게이션 힌트 - 패널의 보이는 영역 기준으로 중앙 정렬 */}
+        {showNavigationHint ? (
+          <View
+            style={{
+              position: 'absolute',
+              top: 140,
+              left: 0,
+              right: 0,
+              height: screenHeight - collapsedTranslateY - 140 - panelBottomClearance,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            pointerEvents="none"
+          >
+            <View style={styles.navigationHintContent}>
+              <FontAwesome5 name="route" size={44} color="#334155" />
+              <Text style={styles.navigationHintText}>{labels.routeHint}</Text>
+            </View>
+          </View>
+        ) : null}
       </Animated.View>
 
       {/* Floating "focus my location" button */}

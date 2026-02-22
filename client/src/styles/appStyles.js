@@ -365,8 +365,11 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
   },
   collapsibleContent: {
-    padding: 12,
     flex: 1,
+  },
+  collapsibleContentInner: {
+    padding: 12,
+    flexGrow: 1,
   },
   transitButtonRow: {
     flexDirection: 'row',
