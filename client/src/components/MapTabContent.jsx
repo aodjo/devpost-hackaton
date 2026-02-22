@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import {
   Animated,
+  Image,
+  Linking,
   PanResponder,
   Platform,
   Pressable,
@@ -14,8 +16,162 @@ import { MaterialIcons } from '@expo/vector-icons'
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5'
 import MapView, { Marker, UrlTile } from 'react-native-maps'
 import { useTranslation } from 'react-i18next'
+import { changeLanguage } from '../i18n'
+import Constants from 'expo-constants'
 
 const NAVIGATION_STEP_ICONS = ['trip-origin', 'turn-right', 'straight', 'flag']
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0'
+const GITHUB_URL = 'https://github.com/aodjo/devpost-hackaton'
+const GOOGLE_ICON_URI = 'https://img.icons8.com/?size=100&id=17949&format=png&color=000000'
+
+function ProfilePanelContent({
+  t,
+  styles,
+  loggedIn,
+  username,
+  badges,
+  onOpenLogin,
+  onLogout,
+  onSelectBadge,
+}) {
+  const { i18n } = useTranslation()
+  const currentLang = i18n.language
+  const [fontSize, setFontSize] = useState('medium')
+
+  const handleLanguageChange = async (lang) => {
+    await changeLanguage(lang)
+  }
+
+  const openGitHub = () => {
+    Linking.openURL(GITHUB_URL)
+  }
+
+  return (
+    <View style={styles.profilePanel}>
+      {/* 프로필 섹션 */}
+      <View style={styles.profileSectionCard}>
+        <View style={styles.profileHeader}>
+          <View style={styles.profileAvatar}>
+            <MaterialIcons name="person" size={32} color="#94a3b8" />
+          </View>
+          <View style={styles.profileInfo}>
+            {loggedIn ? (
+              <>
+                <Text style={styles.profileUsername}>{username}</Text>
+                <Text style={styles.profileEmail}>user@example.com</Text>
+              </>
+            ) : (
+              <Text style={styles.profileLoginHint}>{t('profile.loginPrompt')}</Text>
+            )}
+          </View>
+        </View>
+        {loggedIn ? (
+          <View style={styles.profileButtonRow}>
+            <Pressable style={styles.profileEditButton}>
+              <MaterialIcons name="edit" size={16} color="#475569" />
+              <Text style={styles.profileEditButtonText}>{t('profile.editProfile')}</Text>
+            </Pressable>
+            <Pressable style={styles.profileLogoutButton} onPress={onLogout}>
+              <MaterialIcons name="logout" size={16} color="#ef4444" />
+              <Text style={styles.profileLogoutButtonText}>{t('profile.logout')}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable style={styles.googleLoginButton} onPress={onOpenLogin}>
+            <Image source={{ uri: GOOGLE_ICON_URI }} style={styles.googleIcon} />
+            <Text style={styles.googleLoginButtonText}>{t('profile.loginWithGoogle')}</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {/* 설정 섹션 */}
+      <View style={styles.profileSectionCard}>
+        <Text style={styles.profileSectionTitle}>{t('profile.settings')}</Text>
+
+        {/* 폰트 크기 */}
+        <View style={styles.settingRow}>
+          <Text style={styles.settingLabel}>{t('profile.fontSize')}</Text>
+          <View style={styles.settingButtons}>
+            {['small', 'medium', 'large'].map((size) => (
+              <Pressable
+                key={size}
+                style={[styles.settingButton, fontSize === size && styles.settingButtonActive]}
+                onPress={() => setFontSize(size)}
+              >
+                <Text style={[styles.settingButtonText, fontSize === size && styles.settingButtonTextActive]}>
+                  {t(`profile.fontSizes.${size}`)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* 언어 */}
+        <View style={styles.settingRow}>
+          <Text style={styles.settingLabel}>{t('profile.language')}</Text>
+          <View style={styles.settingButtons}>
+            <Pressable
+              style={[styles.settingButton, currentLang === 'ko' && styles.settingButtonActive]}
+              onPress={() => handleLanguageChange('ko')}
+            >
+              <Text style={[styles.settingButtonText, currentLang === 'ko' && styles.settingButtonTextActive]}>
+                {t('language.korean')}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.settingButton, currentLang === 'en' && styles.settingButtonActive]}
+              onPress={() => handleLanguageChange('en')}
+            >
+              <Text style={[styles.settingButtonText, currentLang === 'en' && styles.settingButtonTextActive]}>
+                {t('language.english')}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
+      {/* 메달 섹션 */}
+      {loggedIn && badges.length > 0 ? (
+        <View style={styles.profileSectionCard}>
+          <Text style={styles.profileSectionTitle}>{t('profile.medals')}</Text>
+          <View style={styles.medalsGrid}>
+            {badges.map((badge) => (
+              <Pressable key={badge.id} style={styles.medalItem} onPress={() => onSelectBadge(badge)}>
+                <View style={styles.medalIcon}>
+                  <Image source={badge.image} style={styles.medalImage} />
+                </View>
+                <Text style={styles.medalName}>{badge.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {/* 앱 정보 섹션 */}
+      <View style={styles.profileSectionCard}>
+        <Text style={styles.profileSectionTitle}>{t('profile.appInfo')}</Text>
+
+        <View style={styles.appInfoRow}>
+          <Text style={styles.appInfoLabel}>{t('profile.version')}</Text>
+          <Text style={styles.appInfoValue}>{APP_VERSION}</Text>
+        </View>
+
+        <Pressable style={styles.appInfoRow} onPress={openGitHub}>
+          <Text style={styles.appInfoLabel}>GitHub</Text>
+          <View style={styles.appInfoLink}>
+            <Text style={styles.appInfoLinkText}>aodjo/devpost-hackaton</Text>
+            <MaterialIcons name="open-in-new" size={14} color="#3b82f6" />
+          </View>
+        </Pressable>
+
+        <Pressable style={styles.appInfoRow}>
+          <Text style={styles.appInfoLabel}>{t('profile.openSource')}</Text>
+          <MaterialIcons name="chevron-right" size={20} color="#94a3b8" />
+        </Pressable>
+      </View>
+    </View>
+  )
+}
 
 function MapTabContent({
   // Shared
@@ -59,6 +215,15 @@ function MapTabContent({
 
   // Navigation panel
   isNavigationTab,
+
+  // Profile panel
+  isProfileTab,
+  loggedIn,
+  username,
+  badges,
+  onOpenLogin,
+  onLogout,
+  onSelectBadge,
   originRef,
   originInput,
   setOriginInput,
@@ -322,11 +487,15 @@ function MapTabContent({
           keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
         >
-          {/* Transit tab content - ScrollView 밖에서 처리 */}
+          {/* Transit tab content */}
+          {isTransitTab ? (
+            <Text style={styles.panelTitle}>{t('panel.transit')}</Text>
+          ) : null}
 
           {/* Navigation tab content */}
           {isNavigationTab ? (
             <View style={styles.navigationPanel}>
+              <Text style={styles.panelTitle}>{t('panel.navigation')}</Text>
               <View style={styles.navigationInputCard}>
                 <TextInput
                   ref={originRef}
@@ -411,6 +580,23 @@ function MapTabContent({
                 </>
               ) : null}
             </View>
+          ) : null}
+
+          {/* Profile tab content */}
+          {isProfileTab ? (
+            <>
+              <Text style={styles.panelTitle}>{t('panel.profile')}</Text>
+              <ProfilePanelContent
+                t={t}
+                styles={styles}
+                loggedIn={loggedIn}
+                username={username}
+                badges={badges}
+                onOpenLogin={onOpenLogin}
+                onLogout={onLogout}
+                onSelectBadge={onSelectBadge}
+              />
+            </>
           ) : null}
         </ScrollView>
 

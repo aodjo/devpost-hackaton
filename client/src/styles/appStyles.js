@@ -400,6 +400,12 @@ export const styles = StyleSheet.create({
     padding: 12,
     flexGrow: 1,
   },
+  panelTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 12,
+  },
   transitUnavailableContainer: {
     flex: 1,
     alignItems: 'center',
@@ -706,6 +712,214 @@ export const styles = StyleSheet.create({
   },
   languageButtonTextActive: {
     color: '#f8fafc',
+  },
+
+  // Profile Panel Styles
+  profilePanel: {
+    gap: 12,
+  },
+  profileSectionCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  profileSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748b',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 14,
+  },
+  profileAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileUsername: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  profileEmail: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  profileLoginHint: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  profileButtonRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  profileEditButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#e2e8f0',
+  },
+  profileEditButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  profileLogoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: '#fef2f2',
+  },
+  profileLogoutButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#ef4444',
+  },
+  profileLoginButton: {
+    backgroundColor: '#0f172a',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  profileLoginButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#f8fafc',
+  },
+  googleLoginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#ffffff',
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  googleIcon: {
+    width: 18,
+    height: 18,
+  },
+  googleLoginButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  settingLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#334155',
+  },
+  settingButtons: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  settingButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    backgroundColor: '#e2e8f0',
+  },
+  settingButtonActive: {
+    backgroundColor: '#0f172a',
+  },
+  settingButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  settingButtonTextActive: {
+    color: '#f8fafc',
+  },
+  medalsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  medalItem: {
+    alignItems: 'center',
+    width: 72,
+  },
+  medalIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  medalImage: {
+    width: 36,
+    height: 36,
+    resizeMode: 'contain',
+  },
+  medalName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
+    textAlign: 'center',
+  },
+  appInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  appInfoLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#334155',
+  },
+  appInfoValue: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  appInfoLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  appInfoLinkText: {
+    fontSize: 14,
+    color: '#3b82f6',
   },
 })
 

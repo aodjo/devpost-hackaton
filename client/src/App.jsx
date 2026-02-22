@@ -11,7 +11,6 @@ import { loadStoredLanguage } from './i18n'
 import AppModals from './components/AppModals'
 import BottomNavBar from './components/BottomNavBar'
 import MapTabContent from './components/MapTabContent'
-import ProfileTabContent from './components/ProfileTabContent'
 import {
   INITIAL_REGION,
   NAVBAR_HORIZONTAL_PADDING,
@@ -243,7 +242,8 @@ function App() {
   const isHomeTab = activeTab === 'home'
   const isTransitTab = activeTab === 'transit'
   const isNavigationTab = activeTab === 'navigation'
-  const isBottomPanelTab = isTransitTab || isNavigationTab
+  const isProfileTab = activeTab === 'profile'
+  const isBottomPanelTab = isTransitTab || isNavigationTab || isProfileTab
   const androidKeyboardInset = Platform.OS === 'android' ? keyboardInset : 0
 
   useEffect(() => {
@@ -382,10 +382,6 @@ function App() {
     }
   }
 
-  const handleOpenChangePasswordModal = () => {
-    setChangePasswordModalVisible(true)
-  }
-
   const handleCancelChangePassword = () => {
     setChangePasswordModalVisible(false)
     setCurrentPassword('')
@@ -419,65 +415,59 @@ function App() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       >
       <View style={[styles.mapWrapper, androidKeyboardInset > 0 ? { marginBottom: androidKeyboardInset } : null]}>
-        {activeTab !== 'profile' ? (
-          <MapTabContent
-            styles={styles}
-            insets={insets}
-            mapRef={mapRef}
-            initialRegion={INITIAL_REGION}
-            tileUrlTemplate={tileUrlTemplate}
-            currentLocation={currentLocation}
-            currentHeading={currentHeading}
-            isBottomPanelTab={isBottomPanelTab}
-            onBackgroundPress={handleBackgroundPress}
-            isHomeTab={isHomeTab}
-            placeQuery={placeQuery}
-            setPlaceQuery={setPlaceQuery}
-            onPlaceSearch={handlePlaceSearch}
-            mapTypeRowAnimatedStyle={mapTypeRowAnimatedStyle}
-            mapType={mapType}
-            setMapType={setMapType}
-            collapseAnim={collapseAnim}
-            panelExpandAnim={panelExpandAnim}
-            panelMinimizeAnim={panelMinimizeAnim}
-            isPanelExpanded={isPanelExpanded}
-            isPanelMinimized={isPanelMinimized}
-            onExpandPanel={handleExpandPanel}
-            onCollapsePanel={handleCollapsePanel}
-            onMinimizePanel={handleMinimizePanel}
-            onTogglePanel={handleTogglePanel}
-            panelBottomClearance={panelBottomClearance}
-            isTransitTab={isTransitTab}
-            isNavigationTab={isNavigationTab}
-            originRef={originRef}
-            originInput={originInput}
-            setOriginInput={setOriginInput}
-            destinationInput={destinationInput}
-            setDestinationInput={setDestinationInput}
-            setDividerCenterY={setDividerCenterY}
-            dividerCenterY={dividerCenterY}
-            searchButtonHeight={SEARCH_BUTTON_HEIGHT}
-            onSearch={handleSearch}
-            hasNavigationInputs={hasNavigationInputs}
-            navigationSummary={navigationSummary}
-            focusButtonBottom={focusButtonBottom}
-            onFocusMyLocation={focusMyLocation}
-            locationError={locationError}
-            locationErrorBottom={locationErrorBottom}
-            keyboardInset={androidKeyboardInset}
-          />
-        ) : (
-          <ProfileTabContent
-            styles={styles}
-            loggedIn={loggedIn}
-            username={username}
-            badges={badges}
-            onOpenLogin={handleOpenLoginModal}
-            onOpenChangePassword={handleOpenChangePasswordModal}
-            onLogout={handleLogout}
-            onSelectBadge={handleSelectBadge}
-          />
-        )}
+        <MapTabContent
+          styles={styles}
+          insets={insets}
+          mapRef={mapRef}
+          initialRegion={INITIAL_REGION}
+          tileUrlTemplate={tileUrlTemplate}
+          currentLocation={currentLocation}
+          currentHeading={currentHeading}
+          isBottomPanelTab={isBottomPanelTab}
+          onBackgroundPress={handleBackgroundPress}
+          isHomeTab={isHomeTab}
+          placeQuery={placeQuery}
+          setPlaceQuery={setPlaceQuery}
+          onPlaceSearch={handlePlaceSearch}
+          mapTypeRowAnimatedStyle={mapTypeRowAnimatedStyle}
+          mapType={mapType}
+          setMapType={setMapType}
+          collapseAnim={collapseAnim}
+          panelExpandAnim={panelExpandAnim}
+          panelMinimizeAnim={panelMinimizeAnim}
+          isPanelExpanded={isPanelExpanded}
+          isPanelMinimized={isPanelMinimized}
+          onExpandPanel={handleExpandPanel}
+          onCollapsePanel={handleCollapsePanel}
+          onMinimizePanel={handleMinimizePanel}
+          onTogglePanel={handleTogglePanel}
+          panelBottomClearance={panelBottomClearance}
+          isTransitTab={isTransitTab}
+          isNavigationTab={isNavigationTab}
+          isProfileTab={isProfileTab}
+          originRef={originRef}
+          originInput={originInput}
+          setOriginInput={setOriginInput}
+          destinationInput={destinationInput}
+          setDestinationInput={setDestinationInput}
+          setDividerCenterY={setDividerCenterY}
+          dividerCenterY={dividerCenterY}
+          searchButtonHeight={SEARCH_BUTTON_HEIGHT}
+          onSearch={handleSearch}
+          hasNavigationInputs={hasNavigationInputs}
+          navigationSummary={navigationSummary}
+          focusButtonBottom={focusButtonBottom}
+          onFocusMyLocation={focusMyLocation}
+          locationError={locationError}
+          locationErrorBottom={locationErrorBottom}
+          keyboardInset={androidKeyboardInset}
+          loggedIn={loggedIn}
+          username={username}
+          badges={badges}
+          onOpenLogin={handleOpenLoginModal}
+          onLogout={handleLogout}
+          onSelectBadge={handleSelectBadge}
+        />
 
         <BottomNavBar
           styles={styles}
