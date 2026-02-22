@@ -25,9 +25,9 @@ const GITHUB_URL = 'https://github.com/aodjo/devpost-hackaton'
 const GOOGLE_ICON_URI = 'https://img.icons8.com/?size=100&id=17949&format=png&color=000000'
 
 const OBSTACLE_CONFIG = {
-  Stuff: { icon: 'warning', color: '#f59e0b', bgColor: '#fef3c7' },
-  Stair: { icon: 'stairs', color: '#3b82f6', bgColor: '#dbeafe' },
-  EV: { icon: 'elevator', color: '#10b981', bgColor: '#d1fae5' },
+  Stuff: { icon: 'exclamation-triangle', color: '#f59e0b', bgColor: '#fef3c7', isFontAwesome: true },
+  Stair: { icon: 'level-up-alt', color: '#3b82f6', bgColor: '#dbeafe', isFontAwesome: true },
+  EV: { icon: 'door-open', color: '#10b981', bgColor: '#d1fae5', isFontAwesome: true },
 }
 
 function ProfilePanelContent({
@@ -446,7 +446,7 @@ function MapTabContent({
               tracksViewChanges={false}
             >
               <View style={[styles.obstacleMarker, { backgroundColor: config.bgColor }]}>
-                <MaterialIcons name={config.icon} size={18} color={config.color} />
+                <FontAwesome5 name={config.icon} size={16} color={config.color} />
                 {obstacle.ids && obstacle.ids.length > 1 ? (
                   <View style={[styles.obstacleMarkerBadge, { backgroundColor: config.color }]}>
                     <Text style={styles.obstacleMarkerBadgeText}>{obstacle.ids.length}</Text>

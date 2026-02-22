@@ -175,6 +175,29 @@ function App() {
       }
     })
 
+    // 초기 장애물 로드
+    const loadInitialObstacles = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/warning/viewport`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sw_latitude: INITIAL_REGION.latitude - INITIAL_REGION.latitudeDelta / 2,
+            sw_longitude: INITIAL_REGION.longitude - INITIAL_REGION.longitudeDelta / 2,
+            ne_latitude: INITIAL_REGION.latitude + INITIAL_REGION.latitudeDelta / 2,
+            ne_longitude: INITIAL_REGION.longitude + INITIAL_REGION.longitudeDelta / 2,
+          }),
+        })
+        const data = await response.json()
+        if (data.places && mounted) {
+          setObstacles(data.places)
+        }
+      } catch {
+        // Ignore errors
+      }
+    }
+    loadInitialObstacles()
+
     return () => {
       mounted = false
       if (watchSubscription) {
