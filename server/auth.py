@@ -1,10 +1,11 @@
+import json
 import os
 import sqlite3
 import secrets
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
 
 import httpx
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from fastapi.responses import RedirectResponse
 
 from db import get_db
@@ -20,16 +21,25 @@ GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
-_oauth_states: dict[str, bool] = {}
+# state -> app_redirect_uri (앱으로 리다이렉트할 URI)
+_oauth_states: dict[str, str | None] = {}
 
 
 @router.get("/auth/google")
-async def auth_google():
+async def auth_google(
+    redirect_uri: str | None = Query(None, description="앱으로 리다이렉트할 URI (예: openroute://callback)"),
+):
+    """
+    Google OAuth 로그인 시작
+
+    - redirect_uri가 없으면 JSON 응답
+    - redirect_uri가 있으면 앱으로 리다이렉트 (openroute://callback?user=...&access_token=...)
+    """
     if not GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
 
     state = secrets.token_urlsafe(32)
-    _oauth_states[state] = True
+    _oauth_states[state] = redirect_uri
 
     params = {
         "client_id": GOOGLE_CLIENT_ID,
@@ -61,7 +71,7 @@ async def callback_google(
     if state not in _oauth_states:
         raise HTTPException(status_code=400, detail="Invalid state")
 
-    del _oauth_states[state]
+    app_redirect_uri = _oauth_states.pop(state)
 
     async with httpx.AsyncClient() as client:
         token_response = await client.post(
@@ -76,6 +86,8 @@ async def callback_google(
         )
 
         if token_response.status_code != 200:
+            if app_redirect_uri:
+                return RedirectResponse(url=f"{app_redirect_uri}?error=token_failed")
             raise HTTPException(status_code=400, detail="Failed to get access token")
 
         tokens = token_response.json()
@@ -87,6 +99,8 @@ async def callback_google(
         )
 
         if userinfo_response.status_code != 200:
+            if app_redirect_uri:
+                return RedirectResponse(url=f"{app_redirect_uri}?error=userinfo_failed")
             raise HTTPException(status_code=400, detail="Failed to get user info")
 
         userinfo = userinfo_response.json()
@@ -114,14 +128,29 @@ async def callback_google(
         )
         user_id = cursor.lastrowid
 
+        # 첫 발걸음 뱃지 부여
+        db.execute(
+            "INSERT OR IGNORE INTO user_badges (user_id, badge_name) VALUES (?, ?)",
+            (user_id, "첫 발걸음"),
+        )
+
     user = db.execute(
         "SELECT * FROM users WHERE id = ?",
         (user_id,),
     ).fetchone()
 
+    user_data = dict(user)
+
+    # 앱으로 리다이렉트
+    if app_redirect_uri:
+        user_json = quote(json.dumps(user_data, ensure_ascii=False))
+        redirect_url = f"{app_redirect_uri}?user={user_json}&access_token={access_token}"
+        return RedirectResponse(url=redirect_url)
+
+    # 웹에서는 JSON 응답
     return {
         "message": "Login successful",
-        "user": dict(user),
+        "user": user_data,
         "access_token": access_token,
     }
 
