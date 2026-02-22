@@ -11,19 +11,10 @@ class request_WarningPlace(BaseModel):
     longitude: float
     description: str
 
-class response_WarningPlace(BaseModel):
-    list : List[db_WarningPlace]
-
-class db_WarningPlace(BaseModel):
-    id: int
-    name: str
-    latitude: float
-    longitude: float
-    description: str
 
 @app.post("/warning/add_place")
 async def add_warning_place(
-    place: WarningPlace,
+    place: request_WarningPlace,
     db: AsyncIOMotorDatabase = Depends(get_database),
 ) -> dict:
     try:
@@ -45,12 +36,33 @@ async def get_warning_places(
     endpoint_longitude: float,
     db: AsyncIOMotorDatabase = Depends(get_database),
 ) -> dict:
-    
+    max_latitiude = max(origin_latitude, endpoint_latitude) + 0.001
+    min_latitude = min(origin_latitude, endpoint_latitude) - 0.001
+    max_longitude = max(origin_longitude, endpoint_longitude) + 0.001
+    min_longitude = min(origin_longitude, endpoint_longitude) - 0.001
 
     try:
-        db.execute(
-            "SELECT * from warning_place WHERE latitude = ? AND longitude = ? AND latitude = ? AND longitude = ?",
-            (origin_latitude, origin_longitude),
+        list = db.execute(
+            "SELECT * from warning_place WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ?",
+            (max_latitiude, min_latitude, max_longitude, min_longitude),
+        ).fetchall()
         
-        )
+        return {"message":"Warning places fetched successfully","list": list}
     except:
+        raise HTTPException(status_code=500, detail="Failed to get warning places")
+
+@app.get("/warning/id_get_place/{id}")
+async def get_id_warning_places(
+    id : int,
+    db: AsyncIOMotorDatabase = Depends(get_database),
+) -> dict:
+    try:
+        place = db.execute(
+            "SELECT * from warning_place WHERE id = ?",
+            (id),
+        ).fetchone()
+        return {"message":"Warning places fetched successfully","place": place}
+    except:
+        raise HTTPException(status_code=500, detail="Failed to get warning place")
+    
+@app.post("/warning/update_place_img/{id}")
