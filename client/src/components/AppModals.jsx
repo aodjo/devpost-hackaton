@@ -1,4 +1,5 @@
 import { Image, Modal, Pressable, Text, TextInput, View } from 'react-native'
+import { useTranslation } from 'react-i18next'
 
 function AppModals({
   styles,
@@ -22,6 +23,8 @@ function AppModals({
   onSubmitChangePassword,
   onCloseBadgeModal,
 }) {
+  const { t } = useTranslation()
+
   return (
     <>
       <Modal
@@ -32,11 +35,11 @@ function AppModals({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>로그인</Text>
+            <Text style={styles.modalTitle}>{t('profile.login')}</Text>
 
             <TextInput
               style={styles.modalInput}
-              placeholder="사용자명"
+              placeholder={t('profile.username')}
               placeholderTextColor="#94a3b8"
               value={username}
               onChangeText={setUsername}
@@ -44,7 +47,7 @@ function AppModals({
 
             <TextInput
               style={styles.modalInput}
-              placeholder="비밀번호"
+              placeholder={t('profile.password')}
               placeholderTextColor="#94a3b8"
               value={password}
               onChangeText={setPassword}
@@ -53,11 +56,11 @@ function AppModals({
 
             <View style={styles.modalButtonRow}>
               <Pressable style={[styles.modalButton, styles.modalButtonCancel]} onPress={onCancelLogin}>
-                <Text style={styles.modalButtonCancelText}>취소</Text>
+                <Text style={styles.modalButtonCancelText}>{t('profile.cancel')}</Text>
               </Pressable>
 
               <Pressable style={[styles.modalButton, styles.modalButtonSubmit]} onPress={onSubmitLogin}>
-                <Text style={styles.modalButtonSubmitText}>로그인</Text>
+                <Text style={styles.modalButtonSubmitText}>{t('profile.login')}</Text>
               </Pressable>
             </View>
           </View>
@@ -72,11 +75,11 @@ function AppModals({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>비밀번호 변경</Text>
+            <Text style={styles.modalTitle}>{t('profile.changePassword')}</Text>
 
             <TextInput
               style={styles.modalInput}
-              placeholder="현재 비밀번호"
+              placeholder={t('profile.currentPassword')}
               placeholderTextColor="#94a3b8"
               value={currentPassword}
               onChangeText={setCurrentPassword}
@@ -85,7 +88,7 @@ function AppModals({
 
             <TextInput
               style={styles.modalInput}
-              placeholder="새 비밀번호"
+              placeholder={t('profile.newPassword')}
               placeholderTextColor="#94a3b8"
               value={newPassword}
               onChangeText={setNewPassword}
@@ -94,7 +97,7 @@ function AppModals({
 
             <TextInput
               style={styles.modalInput}
-              placeholder="새 비밀번호 확인"
+              placeholder={t('profile.confirmPassword')}
               placeholderTextColor="#94a3b8"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -103,14 +106,14 @@ function AppModals({
 
             <View style={styles.modalButtonRow}>
               <Pressable style={[styles.modalButton, styles.modalButtonCancel]} onPress={onCancelChangePassword}>
-                <Text style={styles.modalButtonCancelText}>취소</Text>
+                <Text style={styles.modalButtonCancelText}>{t('profile.cancel')}</Text>
               </Pressable>
 
               <Pressable
                 style={[styles.modalButton, styles.modalButtonSubmit]}
                 onPress={onSubmitChangePassword}
               >
-                <Text style={styles.modalButtonSubmitText}>변경</Text>
+                <Text style={styles.modalButtonSubmitText}>{t('profile.change')}</Text>
               </Pressable>
             </View>
           </View>
@@ -136,7 +139,7 @@ function AppModals({
                   style={[styles.modalButton, styles.modalButtonSubmit, styles.badgeModalCloseButton]}
                   onPress={onCloseBadgeModal}
                 >
-                  <Text style={styles.modalButtonSubmitText}>닫기</Text>
+                  <Text style={styles.modalButtonSubmitText}>{t('profile.close')}</Text>
                 </Pressable>
               </>
             ) : null}

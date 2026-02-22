@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Animated,
   PanResponder,
@@ -13,11 +13,13 @@ import {
 import { MaterialIcons } from '@expo/vector-icons'
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5'
 import MapView, { Marker, UrlTile } from 'react-native-maps'
+import { useTranslation } from 'react-i18next'
+
+const NAVIGATION_STEP_ICONS = ['trip-origin', 'turn-right', 'straight', 'flag']
 
 function MapTabContent({
   // Shared
   styles,
-  labels,
   insets,
 
   // Map
@@ -67,7 +69,6 @@ function MapTabContent({
   onSearch,
   hasNavigationInputs,
   navigationSummary,
-  navigationSteps,
 
   // Floating controls + feedback
   focusButtonBottom,
@@ -78,6 +79,7 @@ function MapTabContent({
   // Keyboard
   keyboardInset = 0,
 }) {
+  const { t } = useTranslation()
   const topPanelTop = insets.top + 12
   const [mapTypeRowBottom, setMapTypeRowBottom] = useState(topPanelTop + 44)
   const { height: screenHeight } = useWindowDimensions()
@@ -96,6 +98,14 @@ function MapTabContent({
 
   // 내비게이션 힌트 표시 여부
   const showNavigationHint = isNavigationTab && !hasNavigationInputs
+
+  // 내비게이션 단계
+  const navigationSteps = [
+    { id: 'step-1', icon: NAVIGATION_STEP_ICONS[0], text: t('navigation.steps.step1') },
+    { id: 'step-2', icon: NAVIGATION_STEP_ICONS[1], text: t('navigation.steps.step2') },
+    { id: 'step-3', icon: NAVIGATION_STEP_ICONS[2], text: t('navigation.steps.step3') },
+    { id: 'step-4', icon: NAVIGATION_STEP_ICONS[3], text: t('navigation.steps.step4') },
+  ]
 
   const panelPanResponder = useMemo(
     () =>
@@ -219,7 +229,7 @@ function MapTabContent({
               style={styles.homeInput}
               value={placeQuery}
               onChangeText={setPlaceQuery}
-              placeholder={labels.placeSearchPlaceholder}
+              placeholder={t('search.placeSearchPlaceholder')}
               placeholderTextColor="#475569"
               returnKeyType="search"
               onSubmitEditing={onPlaceSearch}
@@ -228,7 +238,7 @@ function MapTabContent({
               style={styles.homeSearchButton}
               onPress={onPlaceSearch}
               accessibilityRole="button"
-              accessibilityLabel={labels.search}
+              accessibilityLabel={t('search.search')}
             >
               <MaterialIcons name="search" size={20} color="#f8fafc" />
             </Pressable>
@@ -247,7 +257,7 @@ function MapTabContent({
             onPress={() => setMapType('roadmap')}
           >
             <Text style={[styles.mapTypeButtonText, mapType === 'roadmap' && styles.mapTypeButtonTextActive]}>
-              {labels.road}
+              {t('map.road')}
             </Text>
           </Pressable>
 
@@ -258,7 +268,7 @@ function MapTabContent({
             <Text
               style={[styles.mapTypeButtonText, mapType === 'satellite' && styles.mapTypeButtonTextActive]}
             >
-              {labels.satellite}
+              {t('map.satellite')}
             </Text>
           </Pressable>
         </Animated.View>
@@ -305,7 +315,7 @@ function MapTabContent({
                   style={styles.input}
                   value={originInput}
                   onChangeText={setOriginInput}
-                  placeholder={labels.originPlaceholder}
+                  placeholder={t('search.originPlaceholder')}
                   placeholderTextColor="#94a3b8"
                 />
                 <View
@@ -319,7 +329,7 @@ function MapTabContent({
                   style={styles.input}
                   value={destinationInput}
                   onChangeText={setDestinationInput}
-                  placeholder={labels.destinationPlaceholder}
+                  placeholder={t('search.destinationPlaceholder')}
                   placeholderTextColor="#94a3b8"
                 />
                 <Pressable
@@ -331,32 +341,32 @@ function MapTabContent({
                   ]}
                   onPress={onSearch}
                   accessibilityRole="button"
-                  accessibilityLabel={labels.search}
+                  accessibilityLabel={t('search.search')}
                 >
                   <MaterialIcons name="search" size={18} color="#f8fafc" />
-                  <Text style={styles.searchButtonText}>{labels.search}</Text>
+                  <Text style={styles.searchButtonText}>{t('search.search')}</Text>
                 </Pressable>
               </View>
 
               {hasNavigationInputs ? (
                 <>
                   <View style={styles.navigationHeaderRow}>
-                    <Text style={styles.navigationPanelTitle}>{labels.navigationPanelTitle}</Text>
+                    <Text style={styles.navigationPanelTitle}>{t('navigation.panelTitle')}</Text>
                     <View style={styles.navigationDistancePill}>
                       <Text style={styles.navigationDistancePillText}>
-                        {labels.distance} {navigationSummary.distance}
+                        {t('navigation.distance')} {navigationSummary.distance}
                       </Text>
                     </View>
                   </View>
 
                   <View style={styles.navigationMetaRow}>
                     <View style={styles.navigationMetaItem}>
-                      <Text style={styles.navigationMetaLabel}>{labels.eta}</Text>
+                      <Text style={styles.navigationMetaLabel}>{t('navigation.eta')}</Text>
                       <Text style={styles.navigationMetaValue}>{navigationSummary.eta}</Text>
                     </View>
                     <View style={styles.navigationMetaDivider} />
                     <View style={styles.navigationMetaItem}>
-                      <Text style={styles.navigationMetaLabel}>{labels.duration}</Text>
+                      <Text style={styles.navigationMetaLabel}>{t('navigation.duration')}</Text>
                       <Text style={styles.navigationMetaValue}>{navigationSummary.duration}</Text>
                     </View>
                   </View>
@@ -378,7 +388,7 @@ function MapTabContent({
 
                   <Pressable style={styles.navigationStartButton}>
                     <MaterialIcons name="navigation" size={18} color="#f8fafc" />
-                    <Text style={styles.navigationStartButtonText}>{labels.startGuidance}</Text>
+                    <Text style={styles.navigationStartButtonText}>{t('navigation.startGuidance')}</Text>
                   </Pressable>
                 </>
               ) : null}
@@ -401,7 +411,7 @@ function MapTabContent({
             pointerEvents="none"
           >
             <FontAwesome5 name="clock" size={44} color="#334155" />
-            <Text style={styles.transitUnavailableText}>시간 부족으로 개발되지 않았습니다</Text>
+            <Text style={styles.transitUnavailableText}>{t('transit.unavailable')}</Text>
           </View>
         ) : null}
 
@@ -421,7 +431,7 @@ function MapTabContent({
           >
             <View style={styles.navigationHintContent}>
               <FontAwesome5 name="route" size={44} color="#334155" />
-              <Text style={styles.navigationHintText}>{labels.routeHint}</Text>
+              <Text style={styles.navigationHintText}>{t('navigation.routeHint')}</Text>
             </View>
           </View>
         ) : null}
@@ -432,7 +442,7 @@ function MapTabContent({
         style={[styles.focusButton, { bottom: focusButtonBottom }]}
         onPress={onFocusMyLocation}
         accessibilityRole="button"
-        accessibilityLabel={labels.focusMyLocation}
+        accessibilityLabel={t('map.focusMyLocation')}
       >
         <MaterialIcons name="gps-fixed" size={22} color="#f8fafc" />
       </Pressable>

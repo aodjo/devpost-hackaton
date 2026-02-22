@@ -1,0 +1,69 @@
+{
+  "nav": {
+    "home": "홈",
+    "navigation": "내비게이션",
+    "transit": "대중교통",
+    "profile": "내 정보"
+  },
+  "map": {
+    "road": "간략",
+    "satellite": "위성",
+    "focusMyLocation": "내 위치로 포커스"
+  },
+  "search": {
+    "placeSearchPlaceholder": "건물, 장소 검색",
+    "originPlaceholder": "출발지 입력",
+    "destinationPlaceholder": "목적지 입력",
+    "search": "검색"
+  },
+  "transit": {
+    "bus": "버스",
+    "subway": "지하철",
+    "unavailable": "시간 부족으로 개발되지 않았습니다"
+  },
+  "navigation": {
+    "panelTitle": "추천 경로",
+    "eta": "예상 도착",
+    "duration": "소요",
+    "distance": "거리",
+    "startGuidance": "안내 시작",
+    "currentLocation": "현재 위치",
+    "setDestination": "목적지 설정",
+    "routeHint": "출발지와 목적지를 입력하면 경로가 표시됩니다.",
+    "steps": {
+      "step1": "출발 후 300m 직진",
+      "step2": "삼일대로에서 우회전",
+      "step3": "하단 루트로 1.8km 이동",
+      "step4": "목적지 도착"
+    }
+  },
+  "location": {
+    "permissionRequired": "위치 권한 필요",
+    "loadFailed": "위치 불러오기 실패"
+  },
+  "profile": {
+    "loginPrompt": "로그인해서 배지 얻기",
+    "login": "로그인",
+    "logout": "로그아웃",
+    "myProfile": "내 정보",
+    "changePassword": "비밀번호 변경",
+    "username": "아이디",
+    "password": "비밀번호",
+    "currentPassword": "현재 비밀번호",
+    "newPassword": "새 비밀번호",
+    "confirmPassword": "비밀번호 확인",
+    "cancel": "취소",
+    "confirm": "확인",
+    "myBadges": "내 배지",
+    "badges": "배지",
+    "language": "언어",
+    "passwordMismatch": "새 비밀번호가 일치하지 않습니다.",
+    "error": "오류",
+    "close": "닫기",
+    "change": "변경"
+  },
+  "language": {
+    "korean": "한국어",
+    "english": "English"
+  }
+}

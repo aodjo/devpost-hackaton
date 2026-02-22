@@ -1,0 +1,69 @@
+{
+  "nav": {
+    "home": "Home",
+    "navigation": "Navigation",
+    "transit": "Transit",
+    "profile": "Profile"
+  },
+  "map": {
+    "road": "Map",
+    "satellite": "Satellite",
+    "focusMyLocation": "Focus my location"
+  },
+  "search": {
+    "placeSearchPlaceholder": "Search buildings, places",
+    "originPlaceholder": "Enter origin",
+    "destinationPlaceholder": "Enter destination",
+    "search": "Search"
+  },
+  "transit": {
+    "bus": "Bus",
+    "subway": "Subway",
+    "unavailable": "Not developed due to time constraints"
+  },
+  "navigation": {
+    "panelTitle": "Recommended Route",
+    "eta": "ETA",
+    "duration": "Duration",
+    "distance": "Distance",
+    "startGuidance": "Start Guidance",
+    "currentLocation": "Current Location",
+    "setDestination": "Set Destination",
+    "routeHint": "Enter origin and destination to see the route.",
+    "steps": {
+      "step1": "Go straight 300m after departure",
+      "step2": "Turn right at Samil-daero",
+      "step3": "Move 1.8km via lower route",
+      "step4": "Arrive at destination"
+    }
+  },
+  "location": {
+    "permissionRequired": "Location permission required",
+    "loadFailed": "Failed to load location"
+  },
+  "profile": {
+    "loginPrompt": "Login to earn badges",
+    "login": "Login",
+    "logout": "Logout",
+    "myProfile": "My Profile",
+    "changePassword": "Change Password",
+    "username": "Username",
+    "password": "Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "myBadges": "My Badges",
+    "badges": "Badges",
+    "language": "Language",
+    "passwordMismatch": "New passwords do not match.",
+    "error": "Error",
+    "close": "Close",
+    "change": "Change"
+  },
+  "language": {
+    "korean": "한국어",
+    "english": "English"
+  }
+}

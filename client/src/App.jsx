@@ -5,17 +5,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Animated, Dimensions, Keyboard, KeyboardAvoidingView, Platform, View } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useTranslation } from 'react-i18next'
+import './i18n'
+import { loadStoredLanguage } from './i18n'
 import AppModals from './components/AppModals'
 import BottomNavBar from './components/BottomNavBar'
 import MapTabContent from './components/MapTabContent'
 import ProfileTabContent from './components/ProfileTabContent'
 import {
   INITIAL_REGION,
-  LABELS,
   NAVBAR_HORIZONTAL_PADDING,
-  NAVBAR_VERTICAL_PADDING,
-  NAVIGATION_STEPS,
-  NAV_ITEMS,
   SEARCH_BUTTON_HEIGHT,
 } from './constants/appConstants'
 import { styles } from './styles/appStyles'
@@ -39,6 +38,7 @@ const TILE_QUERY = TILE_REGION
 const ANDROID_KEYBOARD_EXTRA_OFFSET = 0
 
 function App() {
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const mapRef = useRef(null)
   const originRef = useRef(null)
@@ -48,7 +48,7 @@ function App() {
   const [isPanelExpanded, setIsPanelExpanded] = useState(false)
   const [isPanelMinimized, setIsPanelMinimized] = useState(false)
   const [mapType, setMapType] = useState('roadmap')
-  const [activeTab, setActiveTab] = useState(LABELS.home)
+  const [activeTab, setActiveTab] = useState('home')
   const [placeQuery, setPlaceQuery] = useState('')
   const [originInput, setOriginInput] = useState('')
   const [destinationInput, setDestinationInput] = useState('')
@@ -111,7 +111,7 @@ function App() {
       const { status } = await Location.requestForegroundPermissionsAsync()
       if (status !== 'granted') {
         if (mounted) {
-          setLocationError(LABELS.permissionRequired)
+          setLocationError(t('location.permissionRequired'))
         }
         return
       }
@@ -147,9 +147,10 @@ function App() {
     }
 
     loadLoginData()
+    loadStoredLanguage()
     startLocationTracking().catch(() => {
       if (mounted) {
-        setLocationError(LABELS.locationLoadFailed)
+        setLocationError(t('location.loadFailed'))
       }
     })
 
@@ -190,7 +191,7 @@ function App() {
   }
 
   useEffect(() => {
-    if (activeTab === LABELS.navigation) {
+    if (activeTab === 'navigation') {
       originRef.current?.focus()
     }
   }, [activeTab])
@@ -222,14 +223,14 @@ function App() {
 
   const handleNavPress = (item) => {
     setActiveTab(item)
-    if (item === LABELS.home || item === LABELS.navigation) {
+    if (item === 'home' || item === 'navigation') {
       setMapType('roadmap')
     }
   }
 
-  const isHomeTab = activeTab === LABELS.home
-  const isTransitTab = activeTab === LABELS.transit
-  const isNavigationTab = activeTab === LABELS.navigation
+  const isHomeTab = activeTab === 'home'
+  const isTransitTab = activeTab === 'transit'
+  const isNavigationTab = activeTab === 'navigation'
   const isBottomPanelTab = isTransitTab || isNavigationTab
   const androidKeyboardInset = Platform.OS === 'android' ? keyboardInset : 0
 
@@ -248,10 +249,11 @@ function App() {
     })
   }, [isBottomPanelTab, collapseAnim, panelExpandAnim, panelMinimizeAnim])
 
-  const activeNavIndex = Math.max(0, NAV_ITEMS.indexOf(activeTab))
+  const navItemKeys = ['home', 'navigation', 'transit', 'profile']
+  const activeNavIndex = Math.max(0, navItemKeys.indexOf(activeTab))
   const navIndicatorWidth =
     bottomNavWidth > 0
-      ? (bottomNavWidth - NAVBAR_HORIZONTAL_PADDING * 2) / NAV_ITEMS.length
+      ? (bottomNavWidth - NAVBAR_HORIZONTAL_PADDING * 2) / navItemKeys.length
       : 0
   const bottomNavBottom = insets.bottom + 12
   const panelBottomClearance = bottomNavHeight + bottomNavBottom + 8
@@ -328,7 +330,7 @@ function App() {
   }
 
   const handleBackgroundPress = () => {
-    handleNavPress(LABELS.home)
+    handleNavPress('home')
   }
 
   const handleBottomNavLayout = (event) => {
@@ -385,7 +387,7 @@ function App() {
       return
     }
 
-    Alert.alert('오류', '새 비밀번호가 일치하지 않습니다.')
+    Alert.alert(t('profile.error'), t('profile.passwordMismatch'))
   }
 
   const handleSelectBadge = (badge) => {
@@ -405,7 +407,7 @@ function App() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       >
       <View style={[styles.mapWrapper, androidKeyboardInset > 0 ? { marginBottom: androidKeyboardInset } : null]}>
-        {activeTab !== LABELS.profile ? (
+        {activeTab !== 'profile' ? (
           <MapTabContent
             styles={styles}
             insets={insets}
@@ -445,12 +447,10 @@ function App() {
             onSearch={handleSearch}
             hasNavigationInputs={hasNavigationInputs}
             navigationSummary={navigationSummary}
-            navigationSteps={NAVIGATION_STEPS}
             focusButtonBottom={focusButtonBottom}
             onFocusMyLocation={focusMyLocation}
             locationError={locationError}
             locationErrorBottom={locationErrorBottom}
-            labels={LABELS}
             keyboardInset={androidKeyboardInset}
           />
         ) : (
@@ -468,7 +468,7 @@ function App() {
 
         <BottomNavBar
           styles={styles}
-          navItems={NAV_ITEMS}
+          navItemKeys={navItemKeys}
           activeTab={activeTab}
           onPressNavItem={handleNavPress}
           bottomNavBottom={bottomNavBottom}
