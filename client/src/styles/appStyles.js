@@ -747,6 +747,11 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  profileAvatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
   profileInfo: {
     flex: 1,
   },
