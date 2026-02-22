@@ -3,7 +3,7 @@ import Constants from 'expo-constants'
 import * as Location from 'expo-location'
 import * as WebBrowser from 'expo-web-browser'
 import * as AuthSession from 'expo-auth-session'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Animated, Dimensions, Keyboard, KeyboardAvoidingView, Platform, View } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -55,6 +55,10 @@ function App() {
   const [mapType, setMapType] = useState('roadmap')
   const [activeTab, setActiveTab] = useState('home')
   const [placeQuery, setPlaceQuery] = useState('')
+  const [placeAutocomplete, setPlaceAutocomplete] = useState([])
+  const [selectedPlace, setSelectedPlace] = useState(null)
+  const [isSearching, setIsSearching] = useState(false)
+  const autocompleteTimeoutRef = useRef(null)
   const [originInput, setOriginInput] = useState('')
   const [destinationInput, setDestinationInput] = useState('')
   const [currentLocation, setCurrentLocation] = useState(null)
@@ -175,6 +179,9 @@ function App() {
       if (headingSubscription) {
         headingSubscription.remove()
       }
+      if (autocompleteTimeoutRef.current) {
+        clearTimeout(autocompleteTimeoutRef.current)
+      }
     }
   }, [])
 
@@ -200,9 +207,97 @@ function App() {
     }
   }
 
+  const fetchAutocomplete = useCallback(async (query) => {
+    if (!query.trim()) {
+      setPlaceAutocomplete([])
+      return
+    }
+
+    try {
+      const locationParam = currentLocation
+        ? `&location=${currentLocation.latitude},${currentLocation.longitude}`
+        : ''
+      const response = await fetch(
+        `${API_BASE_URL}/places/autocomplete?input=${encodeURIComponent(query)}${locationParam}&language=ko`
+      )
+      const data = await response.json()
+      if (data.predictions) {
+        setPlaceAutocomplete(data.predictions)
+      }
+    } catch {
+      setPlaceAutocomplete([])
+    }
+  }, [currentLocation])
+
+  const handlePlaceQueryChange = useCallback((text) => {
+    setPlaceQuery(text)
+    setSelectedPlace(null)
+
+    if (autocompleteTimeoutRef.current) {
+      clearTimeout(autocompleteTimeoutRef.current)
+    }
+
+    if (!text.trim()) {
+      setPlaceAutocomplete([])
+      return
+    }
+
+    autocompleteTimeoutRef.current = setTimeout(() => {
+      fetchAutocomplete(text)
+    }, 300)
+  }, [fetchAutocomplete])
+
+  const handleSelectPlace = useCallback(async (prediction) => {
+    setPlaceQuery(prediction.main_text)
+    setPlaceAutocomplete([])
+    setIsSearching(true)
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/places/details/${prediction.place_id}?language=ko`
+      )
+      const data = await response.json()
+
+      if (data.place) {
+        const place = data.place
+        setSelectedPlace({
+          placeId: place.place_id,
+          name: place.name,
+          address: place.address,
+          latitude: place.latitude,
+          longitude: place.longitude,
+        })
+
+        if (mapRef.current) {
+          mapRef.current.animateToRegion(
+            {
+              latitude: place.latitude,
+              longitude: place.longitude,
+              latitudeDelta: 0.005,
+              longitudeDelta: 0.005,
+            },
+            300,
+          )
+        }
+      }
+    } catch {
+      // Ignore place details fetch errors
+    } finally {
+      setIsSearching(false)
+    }
+  }, [])
+
+  const handleClearSelectedPlace = useCallback(() => {
+    setSelectedPlace(null)
+    setPlaceQuery('')
+  }, [])
+
   const handlePlaceSearch = () => {
     if (!placeQuery.trim()) {
       return
+    }
+    if (placeAutocomplete.length > 0) {
+      handleSelectPlace(placeAutocomplete[0])
     }
   }
 
@@ -431,7 +526,12 @@ function App() {
           onBackgroundPress={handleBackgroundPress}
           isHomeTab={isHomeTab}
           placeQuery={placeQuery}
-          setPlaceQuery={setPlaceQuery}
+          onPlaceQueryChange={handlePlaceQueryChange}
+          placeAutocomplete={placeAutocomplete}
+          onSelectPlace={handleSelectPlace}
+          selectedPlace={selectedPlace}
+          onClearSelectedPlace={handleClearSelectedPlace}
+          isSearching={isSearching}
           onPlaceSearch={handlePlaceSearch}
           mapTypeRowAnimatedStyle={mapTypeRowAnimatedStyle}
           mapType={mapType}

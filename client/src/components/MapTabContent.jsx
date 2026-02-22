@@ -194,7 +194,12 @@ function MapTabContent({
   // Home search
   isHomeTab,
   placeQuery,
-  setPlaceQuery,
+  onPlaceQueryChange,
+  placeAutocomplete,
+  onSelectPlace,
+  selectedPlace,
+  onClearSelectedPlace,
+  isSearching,
   onPlaceSearch,
 
   // Map type controls
@@ -406,29 +411,78 @@ function MapTabContent({
             </View>
           </Marker>
         ) : null}
+        {selectedPlace ? (
+          <Marker
+            coordinate={{
+              latitude: selectedPlace.latitude,
+              longitude: selectedPlace.longitude,
+            }}
+            title={selectedPlace.name}
+            description={selectedPlace.address}
+          >
+            <View style={styles.selectedPlaceMarker}>
+              <MaterialIcons name="place" size={36} color="#ef4444" />
+            </View>
+          </Marker>
+        ) : null}
       </MapView>
 
       {/* Top overlay: home search + map type switch */}
       <View style={[styles.topPanel, { top: topPanelTop }]}>
         {isHomeTab ? (
-          <View style={[styles.inputCard, styles.homeInputCard]}>
-            <TextInput
-              style={styles.homeInput}
-              value={placeQuery}
-              onChangeText={setPlaceQuery}
-              placeholder={t('search.placeSearchPlaceholder')}
-              placeholderTextColor="#475569"
-              returnKeyType="search"
-              onSubmitEditing={onPlaceSearch}
-            />
-            <Pressable
-              style={styles.homeSearchButton}
-              onPress={onPlaceSearch}
-              accessibilityRole="button"
-              accessibilityLabel={t('search.search')}
-            >
-              <MaterialIcons name="search" size={20} color="#f8fafc" />
-            </Pressable>
+          <View style={styles.searchContainer}>
+            <View style={[styles.inputCard, styles.homeInputCard]}>
+              <TextInput
+                style={styles.homeInput}
+                value={placeQuery}
+                onChangeText={onPlaceQueryChange}
+                placeholder={t('search.placeSearchPlaceholder')}
+                placeholderTextColor="#475569"
+                returnKeyType="search"
+                onSubmitEditing={onPlaceSearch}
+              />
+              {placeQuery.length > 0 ? (
+                <Pressable
+                  style={styles.clearButton}
+                  onPress={onClearSelectedPlace}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear"
+                >
+                  <MaterialIcons name="close" size={18} color="#94a3b8" />
+                </Pressable>
+              ) : null}
+              <Pressable
+                style={styles.homeSearchButton}
+                onPress={onPlaceSearch}
+                accessibilityRole="button"
+                accessibilityLabel={t('search.search')}
+              >
+                {isSearching ? (
+                  <MaterialIcons name="hourglass-empty" size={20} color="#f8fafc" />
+                ) : (
+                  <MaterialIcons name="search" size={20} color="#f8fafc" />
+                )}
+              </Pressable>
+            </View>
+
+            {/* Autocomplete dropdown */}
+            {placeAutocomplete.length > 0 ? (
+              <View style={styles.autocompleteDropdown}>
+                {placeAutocomplete.map((prediction) => (
+                  <Pressable
+                    key={prediction.place_id}
+                    style={styles.autocompleteItem}
+                    onPress={() => onSelectPlace(prediction)}
+                  >
+                    <MaterialIcons name="place" size={18} color="#64748b" />
+                    <View style={styles.autocompleteTextContainer}>
+                      <Text style={styles.autocompleteMainText}>{prediction.main_text}</Text>
+                      <Text style={styles.autocompleteSecondaryText}>{prediction.secondary_text}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
           </View>
         ) : null}
 
