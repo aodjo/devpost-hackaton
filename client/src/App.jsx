@@ -196,12 +196,17 @@ function App() {
   useEffect(() => {
     if (activeTab === LABELS.navigation) {
       originRef.current?.focus()
-    } else if (activeTab === LABELS.home) {
-      setMapType('roadmap')
-    } else if (activeTab === LABELS.profile) {
-      Alert.alert('Profile', 'Profile tab selected')
     }
   }, [activeTab])
+
+  const handleNavPress = (item) => {
+    setActiveTab(item)
+    if (item === LABELS.home) {
+      setMapType('roadmap')
+    } else if (item === LABELS.profile) {
+      Alert.alert('Profile', 'Profile tab selected')
+    }
+  }
 
   useEffect(() => {
     Animated.timing(collapseAnim, {
@@ -417,7 +422,7 @@ function App() {
             <Pressable
               key={item}
               style={styles.navItem}
-              onPress={() => setActiveTab(item)}
+              onPress={() => handleNavPress(item)}
             >
               <Text style={[styles.navText, activeTab === item && styles.navTextActive]}>
                 {item}
