@@ -16,7 +16,7 @@ from db import get_db
 router = APIRouter(prefix="/warning", tags=["warning"])
 
 
-PlaceType = Literal["obstacle", "stairs", "elevator"]
+PlaceType = Literal["Stuff", "Stair", "EV"]
 
 
 class RequestAddWarningPlace(BaseModel):
@@ -25,7 +25,7 @@ class RequestAddWarningPlace(BaseModel):
     latitude: float
     longitude: float
     description: str
-    type: PlaceType = "obstacle"
+    type: PlaceType = "Stuff"
 
 
 class RequestListWarningPlace(BaseModel):
@@ -95,12 +95,12 @@ def add_warning_place(
             (place.user_id,),
         )
 
-        if place.type == "stairs":
+        if place.type == "Stair":
             db.execute(
                 "UPDATE users SET stairs_reported = stairs_reported + 1 WHERE id = ?",
                 (place.user_id,),
             )
-        elif place.type == "elevator":
+        elif place.type == "EV":
             db.execute(
                 "UPDATE users SET elevators_reported = elevators_reported + 1 WHERE id = ?",
                 (place.user_id,),
@@ -140,9 +140,9 @@ def get_places_in_viewport(
 
         stats = {
             "total": len(result_list),
-            "obstacle": sum(1 for r in result_list if r["type"] == "obstacle"),
-            "stairs": sum(1 for r in result_list if r["type"] == "stairs"),
-            "elevator": sum(1 for r in result_list if r["type"] == "elevator"),
+            "Stuff": sum(1 for r in result_list if r["type"] == "Stuff"),
+            "Stair": sum(1 for r in result_list if r["type"] == "Stair"),
+            "EV": sum(1 for r in result_list if r["type"] == "EV"),
         }
 
         return {

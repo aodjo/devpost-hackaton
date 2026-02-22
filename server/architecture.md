@@ -103,7 +103,7 @@ POST /warning/viewport
     "sw_longitude": 126.9700,
     "ne_latitude": 37.5700,
     "ne_longitude": 126.9900,
-    "type": "stairs"
+    "type": "Stair"
 }
 ```
 
@@ -113,7 +113,7 @@ POST /warning/viewport
 | sw_longitude | float | O | 남서쪽 경도 |
 | ne_latitude | float | O | 북동쪽 위도 |
 | ne_longitude | float | O | 북동쪽 경도 |
-| type | string | X | 필터: `obstacle`, `stairs`, `elevator` (없으면 전체) |
+| type | string | X | 필터: `Stuff`, `Stair`, `EV` (없으면 전체) |
 
 #### Response (200 OK)
 ```json
@@ -121,9 +121,9 @@ POST /warning/viewport
     "message": "Places retrieved successfully",
     "stats": {
         "total": 15,
-        "obstacle": 8,
-        "stairs": 4,
-        "elevator": 3
+        "Stuff": 8,
+        "Stair": 4,
+        "EV": 3
     },
     "places": [
         {
@@ -133,7 +133,7 @@ POST /warning/viewport
             "latitude": 37.5650,
             "longitude": 126.9800,
             "description": "가파른 계단",
-            "type": "stairs",
+            "type": "Stair",
             "has_image": 1,
             "verification_count": 3,
             "created_at": "2024-01-01 12:00:00",
@@ -158,7 +158,7 @@ POST /warning/add_place
     "latitude": 37.5665,
     "longitude": 126.9780,
     "description": "제보 내용",
-    "type": "obstacle"
+    "type": "Stuff"
 }
 ```
 
@@ -169,7 +169,7 @@ POST /warning/add_place
 | latitude | float | O | 위도 |
 | longitude | float | O | 경도 |
 | description | string | O | 제보 내용 |
-| type | string | X | 타입: `obstacle`(기본), `stairs`, `elevator` |
+| type | string | X | 타입: `Stuff`(기본), `Stair`, `EV` |
 
 #### Response (200 OK)
 ```json
@@ -241,7 +241,7 @@ POST /warning/get_place/
             "latitude": 37.5670,
             "longitude": 126.9785,
             "description": "장애물 설명",
-            "type": "obstacle",
+            "type": "Stuff",
             "has_image": 1,
             "verification_count": 5,
             "created_at": "2024-01-01 12:00:00",
@@ -274,7 +274,7 @@ GET /warning/get_place/{place_id}
         "latitude": 37.5670,
         "longitude": 126.9785,
         "description": "장애물 설명",
-        "type": "obstacle",
+        "type": "Stuff",
         "has_image": 1,
         "verification_count": 5,
         "created_at": "2024-01-01 12:00:00",

@@ -32,7 +32,7 @@ def init_db() -> None:
                 latitude REAL NOT NULL,
                 longitude REAL NOT NULL,
                 description TEXT NOT NULL,
-                type TEXT DEFAULT 'obstacle',
+                type TEXT DEFAULT 'Stuff',
                 has_image INTEGER DEFAULT 0,
                 verification_count INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
