@@ -12,6 +12,7 @@ import './i18n'
 import { loadStoredLanguage } from './i18n'
 import AppModals from './components/AppModals'
 import BottomNavBar from './components/BottomNavBar'
+import CameraTabContent from './components/CameraTabContent'
 import MapTabContent from './components/MapTabContent'
 import {
   INITIAL_REGION,
@@ -348,6 +349,7 @@ function App() {
   }
 
   const isHomeTab = activeTab === 'home'
+  const isCameraTab = activeTab === 'camera'
   const isTransitTab = activeTab === 'transit'
   const isNavigationTab = activeTab === 'navigation'
   const isProfileTab = activeTab === 'profile'
@@ -531,6 +533,12 @@ function App() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       >
       <View style={[styles.mapWrapper, androidKeyboardInset > 0 ? { marginBottom: androidKeyboardInset } : null]}>
+        {isCameraTab ? (
+          <CameraTabContent
+            styles={styles}
+            onClose={() => handleNavPress('home')}
+          />
+        ) : (
         <MapTabContent
           styles={styles}
           insets={insets}
@@ -589,22 +597,25 @@ function App() {
           onLogout={handleLogout}
           onSelectBadge={handleSelectBadge}
         />
+        )}
 
-        <BottomNavBar
-          styles={styles}
-          activeTab={activeTab}
-          onPressNavItem={handleNavPress}
-          bottomNavBottom={bottomNavBottom}
-          onLayout={handleBottomNavLayout}
-          navIndicatorWidth={navIndicatorWidth}
-          navIndicatorAnim={navIndicatorAnim}
-          navGroupWidth={navGroupWidth}
-          cameraAreaOffset={cameraAreaOffset}
-        />
+        {!isCameraTab && (
+          <BottomNavBar
+            styles={styles}
+            activeTab={activeTab}
+            onPressNavItem={handleNavPress}
+            bottomNavBottom={bottomNavBottom}
+            onLayout={handleBottomNavLayout}
+            navIndicatorWidth={navIndicatorWidth}
+            navIndicatorAnim={navIndicatorAnim}
+            navGroupWidth={navGroupWidth}
+            cameraAreaOffset={cameraAreaOffset}
+          />
+        )}
       </View>
       </KeyboardAvoidingView>
 
-      <StatusBar style="auto" />
+      <StatusBar style={isCameraTab ? 'light' : 'auto'} />
 
       <AppModals
         styles={styles}

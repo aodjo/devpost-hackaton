@@ -1094,5 +1094,118 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     color: '#3b82f6',
   },
+
+  // Camera styles
+  cameraContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  camera: {
+    flex: 1,
+  },
+  cameraOverlay: {
+    flex: 1,
+    justifyContent: 'space-between',
+    padding: 20,
+  },
+  cameraTopControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 40,
+  },
+  cameraControlButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraBottomControls: {
+    alignItems: 'center',
+    paddingBottom: 40,
+  },
+  cameraShutterButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: '#fff',
+  },
+  cameraShutterButtonInner: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#fff',
+  },
+  cameraPreview: {
+    flex: 1,
+  },
+  cameraPreviewActions: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    padding: 24,
+    paddingBottom: 48,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  cameraActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+  },
+  cameraActionButtonPrimary: {
+    backgroundColor: '#0f172a',
+  },
+  cameraActionButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  cameraActionButtonTextPrimary: {
+    color: '#f8fafc',
+  },
+  cameraPermissionContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    gap: 16,
+  },
+  cameraPermissionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#f8fafc',
+    textAlign: 'center',
+  },
+  cameraPermissionText: {
+    fontSize: 14,
+    color: '#94a3b8',
+    textAlign: 'center',
+  },
+  cameraPermissionButton: {
+    marginTop: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+  },
+  cameraPermissionButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
 })
 

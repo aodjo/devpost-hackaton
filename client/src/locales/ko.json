@@ -89,5 +89,14 @@
   "language": {
     "korean": "한국어",
     "english": "English"
+  },
+  "camera": {
+    "permissionRequired": "카메라 권한이 필요합니다",
+    "permissionMessage": "사진을 촬영하려면 카메라 접근 권한이 필요합니다.",
+    "grantPermission": "권한 허용",
+    "takePhoto": "촬영",
+    "retake": "다시 촬영",
+    "usePhoto": "사용",
+    "switchCamera": "카메라 전환"
   }
 }
