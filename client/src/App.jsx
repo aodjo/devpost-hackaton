@@ -18,7 +18,7 @@ const LOCALE_PARTS = NORMALIZED_LOCALE.split('-')
 const TILE_LANGUAGE = NORMALIZED_LOCALE
 const TILE_REGION =
   LOCALE_PARTS.length > 1 &&
-  /^[A-Za-z]{2}$/.test(LOCALE_PARTS[LOCALE_PARTS.length - 1])
+    /^[A-Za-z]{2}$/.test(LOCALE_PARTS[LOCALE_PARTS.length - 1])
     ? LOCALE_PARTS[LOCALE_PARTS.length - 1].toUpperCase()
     : undefined
 
@@ -27,29 +27,29 @@ const TILE_QUERY = TILE_REGION
   : `lang=${encodeURIComponent(TILE_LANGUAGE)}`
 
 const LABELS = {
-  home: '\uD648',
-  navigation: '\uB0B4\uBE44\uAC8C\uC774\uC158',
-  transit: '\uB300\uC911\uAD50\uD1B5',
-  profile: '\uB0B4 \uC815\uBCF4',
-  road: '\uAC04\uB7B5',
-  satellite: '\uC704\uC131',
-  bus: '\uBC84\uC2A4',
-  subway: '\uC9C0\uD558\ucca0',
-  placeSearchPlaceholder: '\uAC74\uBB3C, \uC7A5\uC18C \uAC80\uC0C9',
-  originPlaceholder: '\uCD9C\uBC1C\uC9C0 \uC785\uB825',
-  destinationPlaceholder: '\uBAA9\uC801\uC9C0 \uC785\uB825',
-  search: '\uAC80\uC0C9',
-  permissionRequired: '\uC704\uCE58 \uAD8C\uD55C \uD544\uC694',
-  locationLoadFailed: '\uC704\uCE58 \uBD88\uB7EC\uC624\uAE30 \uC2E4\uD328',
-  focusMyLocation: '\uB0B4 \uC704\uCE58\uB85C \uD3EC\uCEE4\uC2A4',
-  navigationPanelTitle: '\uCD94\uCC9C \uACBD\uB85C',
-  eta: '\uC608\uC0C1 \uB3C4\uCC29',
-  duration: '\uC18C\uC694',
-  distance: '\uAC70\uB9AC',
-  startGuidance: '\uC548\uB0B4 \uC2DC\uC791',
-  currentLocation: '\uD604\uC7AC \uC704\uCE58',
-  setDestination: '\uBAA9\uC801\uC9C0 \uC124\uC815',
-  routeHint: '\uCD9C\uBC1C\uC9C0\uC640 \uBAA9\uC801\uC9C0\uB97C \uC785\uB825\uD558\uBA74 \uACBD\uB85C\uAC00 \uD45C\uC2DC\uB429\uB2C8\uB2E4.',
+  home: "홈",
+  navigation: "내비게이션",
+  transit: "대중교통",
+  profile: "내 정보",
+  road: "간략",
+  satellite: "위성",
+  bus: "버스",
+  subway: "지하철",
+  placeSearchPlaceholder: "건물, 장소 검색",
+  originPlaceholder: "출발지 입력",
+  destinationPlaceholder: "목적지 입력",
+  search: "검색",
+  permissionRequired: "위치 권한 필요",
+  locationLoadFailed: "위치 불러오기 실패",
+  focusMyLocation: "내 위치로 포커스",
+  navigationPanelTitle: "추천 경로",
+  eta: "예상 도착",
+  duration: "소요",
+  distance: "거리",
+  startGuidance: "안내 시작",
+  currentLocation: "현재 위치",
+  setDestination: "목적지 설정",
+  routeHint: "출발지와 목적지를 입력하면 경로가 표시됩니다."
 }
 
 const NAV_ITEMS = [LABELS.home, LABELS.navigation, LABELS.transit, LABELS.profile]
@@ -65,10 +65,10 @@ const NAVBAR_RADIUS = 14
 const NAVBAR_VERTICAL_PADDING = 8
 const NAVBAR_HORIZONTAL_PADDING = 6
 const NAVIGATION_STEPS = [
-  { id: 'step-1', icon: 'trip-origin', text: '\uCD9C\uBC1C \uD6C4 300m \uC9C1\uC9C4' },
-  { id: 'step-2', icon: 'turn-right', text: '\uC0BC\uC77C\uB300\uB85C\uC5D0\uC11C \uC6B0\uD68C\uC804' },
-  { id: 'step-3', icon: 'straight', text: '\uD558\uB2E8 \uB8E8\uD2B8\uB85C 1.8km \uC774\uB3D9' },
-  { id: 'step-4', icon: 'flag', text: '\uBAA9\uC801\uC9C0 \uB3C4\uCC29' },
+  { id: 'step-1', icon: 'trip-origin', text: '출발 후 300m 직진' },
+  { id: 'step-2', icon: 'turn-right', text: '삼일대로에서 우회전' },
+  { id: 'step-3', icon: 'straight', text: '하단 루트로 1.8km 이동' },
+  { id: 'step-4', icon: 'flag', text: '목적지 도착' },
 ]
 
 function App() {
@@ -84,6 +84,7 @@ function App() {
   const [destinationInput, setDestinationInput] = useState('')
   const [currentLocation, setCurrentLocation] = useState(null)
   const [locationError, setLocationError] = useState('')
+  const [dividerCenterY, setDividerCenterY] = useState(null)
   const [loginModalVisible, setLoginModalVisible] = useState(false)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -350,46 +351,27 @@ function App() {
         {activeTab !== LABELS.profile ? (
           <>
             <View style={styles.topPanel}>
-              {isNavigationTab ? null : (
-                <View style={styles.inputCard}>
+              {isHomeTab ? (
+                <View style={[styles.inputCard, styles.homeInputCard]}>
                   <TextInput
-                    ref={originRef}
-                    style={styles.input}
-                    value={originInput}
-                    onChangeText={setOriginInput}
-                    placeholder={LABELS.originPlaceholder}
-                    placeholderTextColor="#94a3b8"
-                  />
-                  <View
-                    style={styles.inputDivider}
-                    onLayout={(event) => {
-                      const { y, height } = event.nativeEvent.layout
-                      setDividerCenterY(y + height / 2)
-                    }}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    value={destinationInput}
-                    onChangeText={setDestinationInput}
-                    placeholder={LABELS.destinationPlaceholder}
-                    placeholderTextColor="#94a3b8"
+                    style={styles.homeInput}
+                    value={placeQuery}
+                    onChangeText={setPlaceQuery}
+                    placeholder={LABELS.placeSearchPlaceholder}
+                    placeholderTextColor="#475569"
+                    returnKeyType="search"
+                    onSubmitEditing={handlePlaceSearch}
                   />
                   <Pressable
-                    style={[
-                      styles.searchButton,
-                      dividerCenterY == null
-                        ? styles.searchButtonFallback
-                        : { top: dividerCenterY - SEARCH_BUTTON_HEIGHT / 2 },
-                    ]}
-                    onPress={handleSearch}
+                    style={styles.homeSearchButton}
+                    onPress={handlePlaceSearch}
                     accessibilityRole="button"
                     accessibilityLabel={LABELS.search}
                   >
-                    <MaterialIcons name="search" size={18} color="#f8fafc" />
-                    <Text style={styles.searchButtonText}>{LABELS.search}</Text>
+                    <MaterialIcons name="search" size={20} color="#f8fafc" />
                   </Pressable>
                 </View>
-              )}
+              ) : null}
 
               <Animated.View style={[styles.mapTypeRow, mapTypeRowAnimatedStyle]}>
                 <Pressable
@@ -720,7 +702,7 @@ function App() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>로그인</Text>
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="사용자명"
@@ -728,7 +710,7 @@ function App() {
               value={username}
               onChangeText={setUsername}
             />
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="비밀번호"
@@ -737,9 +719,9 @@ function App() {
               onChangeText={setPassword}
               secureTextEntry={true}
             />
-            
+
             <View style={styles.modalButtonRow}>
-              <Pressable 
+              <Pressable
                 style={[styles.modalButton, styles.modalButtonCancel]}
                 onPress={() => {
                   setLoginModalVisible(false)
@@ -749,8 +731,8 @@ function App() {
               >
                 <Text style={styles.modalButtonCancelText}>취소</Text>
               </Pressable>
-              
-              <Pressable 
+
+              <Pressable
                 style={[styles.modalButton, styles.modalButtonSubmit]}
                 onPress={async () => {
                   setLoggedIn(true)
@@ -778,7 +760,7 @@ function App() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>비밀번호 변경</Text>
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="현재 비밀번호"
@@ -787,7 +769,7 @@ function App() {
               onChangeText={setCurrentPassword}
               secureTextEntry={true}
             />
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="새 비밀번호"
@@ -796,7 +778,7 @@ function App() {
               onChangeText={setNewPassword}
               secureTextEntry={true}
             />
-            
+
             <TextInput
               style={styles.modalInput}
               placeholder="새 비밀번호 확인"
@@ -805,9 +787,9 @@ function App() {
               onChangeText={setConfirmPassword}
               secureTextEntry={true}
             />
-            
+
             <View style={styles.modalButtonRow}>
-              <Pressable 
+              <Pressable
                 style={[styles.modalButton, styles.modalButtonCancel]}
                 onPress={() => {
                   setChangePasswordModalVisible(false)
@@ -818,8 +800,8 @@ function App() {
               >
                 <Text style={styles.modalButtonCancelText}>취소</Text>
               </Pressable>
-              
-              <Pressable 
+
+              <Pressable
                 style={[styles.modalButton, styles.modalButtonSubmit]}
                 onPress={() => {
                   if (newPassword === confirmPassword) {
@@ -850,14 +832,14 @@ function App() {
             {selectedBadge && (
               <>
                 <View style={styles.badgeModalIcon}>
-                  <Image 
-                    source={selectedBadge.image} 
+                  <Image
+                    source={selectedBadge.image}
                     style={styles.badgeModalImage}
                   />
                 </View>
                 <Text style={styles.badgeModalTitle}>{selectedBadge.name}</Text>
                 <Text style={styles.badgeModalDescription}>{selectedBadge.description}</Text>
-                <Pressable 
+                <Pressable
                   style={[styles.modalButton, styles.modalButtonSubmit, styles.badgeModalCloseButton]}
                   onPress={() => setBadgeModalVisible(false)}
                 >
