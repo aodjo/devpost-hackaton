@@ -89,5 +89,35 @@
   "language": {
     "korean": "한국어",
     "english": "English"
+  },
+  "camera": {
+    "permissionRequired": "카메라 권한이 필요합니다",
+    "permissionMessage": "사진을 촬영하려면 카메라 접근 권한이 필요합니다.",
+    "grantPermission": "권한 허용",
+    "takePhoto": "촬영",
+    "retake": "다시 촬영",
+    "usePhoto": "사용",
+    "next": "다음",
+    "switchCamera": "카메라 전환"
+  },
+  "report": {
+    "name": "정보 이름",
+    "namePlaceholder": "접근성 정보 이름을 입력하세요",
+    "type": "정보 종류",
+    "types": {
+      "Stuff": "장애물",
+      "Stair": "계단",
+      "EV": "엘리베이터"
+    },
+    "description": "상세 설명",
+    "descriptionPlaceholder": "접근성 정보에 대한 설명을 입력하세요",
+    "submit": "등록하기",
+    "success": "등록 완료",
+    "submitSuccess": "접근성 정보가 등록되었습니다. 감사합니다!",
+    "error": "오류",
+    "nameRequired": "정보 이름을 입력해주세요",
+    "locationRequired": "위치 정보를 가져올 수 없습니다",
+    "locationUnavailable": "위치 정보 없음",
+    "submitFailed": "정보 등록에 실패했습니다. 다시 시도해주세요."
   }
 }

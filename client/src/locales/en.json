@@ -89,5 +89,35 @@
   "language": {
     "korean": "한국어",
     "english": "English"
+  },
+  "camera": {
+    "permissionRequired": "Camera permission required",
+    "permissionMessage": "Camera access is needed to take photos.",
+    "grantPermission": "Grant Permission",
+    "takePhoto": "Capture",
+    "retake": "Retake",
+    "usePhoto": "Use",
+    "next": "Next",
+    "switchCamera": "Switch Camera"
+  },
+  "report": {
+    "name": "Name",
+    "namePlaceholder": "Enter accessibility info name",
+    "type": "Type",
+    "types": {
+      "Stuff": "Obstacle",
+      "Stair": "Stairs",
+      "EV": "Elevator"
+    },
+    "description": "Description",
+    "descriptionPlaceholder": "Enter description",
+    "submit": "Submit",
+    "success": "Success",
+    "submitSuccess": "Accessibility info has been registered. Thank you!",
+    "error": "Error",
+    "nameRequired": "Please enter a name",
+    "locationRequired": "Unable to get location",
+    "locationUnavailable": "Location unavailable",
+    "submitFailed": "Failed to submit. Please try again."
   }
 }
