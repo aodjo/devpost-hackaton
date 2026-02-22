@@ -19,6 +19,7 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5'
 import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps'
 import { useTranslation } from 'react-i18next'
 import { changeLanguage } from '../i18n'
+import { useFontSize } from '../context/FontSizeContext'
 import Constants from 'expo-constants'
 
 const NAVIGATION_STEP_ICONS = ['trip-origin', 'turn-right', 'straight', 'flag']
@@ -196,7 +197,7 @@ function ProfilePanelContent({
 }) {
   const { i18n } = useTranslation()
   const currentLang = i18n.language
-  const [fontSize, setFontSize] = useState('medium')
+  const { fontSize, fontScale, setFontSize } = useFontSize()
 
   const handleLanguageChange = async (lang) => {
     await changeLanguage(lang)
@@ -204,6 +205,22 @@ function ProfilePanelContent({
 
   const openGitHub = () => {
     Linking.openURL(GITHUB_URL)
+  }
+
+  // 스케일된 폰트 스타일
+  const scaledStyles = {
+    profileUsername: { fontSize: Math.round(18 * fontScale) },
+    profileEmail: { fontSize: Math.round(13 * fontScale) },
+    profileLoginHint: { fontSize: Math.round(14 * fontScale) },
+    profileSectionTitle: { fontSize: Math.round(15 * fontScale) },
+    settingLabel: { fontSize: Math.round(14 * fontScale) },
+    settingButtonText: { fontSize: Math.round(13 * fontScale) },
+    appInfoLabel: { fontSize: Math.round(14 * fontScale) },
+    appInfoValue: { fontSize: Math.round(14 * fontScale) },
+    medalName: { fontSize: Math.round(11 * fontScale) },
+    profileEditButtonText: { fontSize: Math.round(13 * fontScale) },
+    profileLogoutButtonText: { fontSize: Math.round(13 * fontScale) },
+    googleLoginButtonText: { fontSize: Math.round(14 * fontScale) },
   }
 
   return (
@@ -221,11 +238,11 @@ function ProfilePanelContent({
           <View style={styles.profileInfo}>
             {loggedIn && userData ? (
               <>
-                <Text style={styles.profileUsername}>{userData.username}</Text>
-                <Text style={styles.profileEmail}>{userData.email}</Text>
+                <Text style={[styles.profileUsername, scaledStyles.profileUsername]}>{userData.username}</Text>
+                <Text style={[styles.profileEmail, scaledStyles.profileEmail]}>{userData.email}</Text>
               </>
             ) : (
-              <Text style={styles.profileLoginHint}>{t('profile.loginPrompt')}</Text>
+              <Text style={[styles.profileLoginHint, scaledStyles.profileLoginHint]}>{t('profile.loginPrompt')}</Text>
             )}
           </View>
         </View>
@@ -233,28 +250,28 @@ function ProfilePanelContent({
           <View style={styles.profileButtonRow}>
             <Pressable style={styles.profileEditButton}>
               <MaterialIcons name="edit" size={16} color="#475569" />
-              <Text style={styles.profileEditButtonText}>{t('profile.editProfile')}</Text>
+              <Text style={[styles.profileEditButtonText, scaledStyles.profileEditButtonText]}>{t('profile.editProfile')}</Text>
             </Pressable>
             <Pressable style={styles.profileLogoutButton} onPress={onLogout}>
               <MaterialIcons name="logout" size={16} color="#ef4444" />
-              <Text style={styles.profileLogoutButtonText}>{t('profile.logout')}</Text>
+              <Text style={[styles.profileLogoutButtonText, scaledStyles.profileLogoutButtonText]}>{t('profile.logout')}</Text>
             </Pressable>
           </View>
         ) : (
           <Pressable style={styles.googleLoginButton} onPress={onOpenLogin}>
             <Image source={{ uri: GOOGLE_ICON_URI }} style={styles.googleIcon} />
-            <Text style={styles.googleLoginButtonText}>{t('profile.loginWithGoogle')}</Text>
+            <Text style={[styles.googleLoginButtonText, scaledStyles.googleLoginButtonText]}>{t('profile.loginWithGoogle')}</Text>
           </Pressable>
         )}
       </View>
 
       {/* 설정 섹션 */}
       <View style={styles.profileSectionCard}>
-        <Text style={styles.profileSectionTitle}>{t('profile.settings')}</Text>
+        <Text style={[styles.profileSectionTitle, scaledStyles.profileSectionTitle]}>{t('profile.settings')}</Text>
 
         {/* 폰트 크기 */}
         <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>{t('profile.fontSize')}</Text>
+          <Text style={[styles.settingLabel, scaledStyles.settingLabel]}>{t('profile.fontSize')}</Text>
           <View style={styles.settingButtons}>
             {['small', 'medium', 'large'].map((size) => (
               <Pressable
@@ -262,7 +279,7 @@ function ProfilePanelContent({
                 style={[styles.settingButton, fontSize === size && styles.settingButtonActive]}
                 onPress={() => setFontSize(size)}
               >
-                <Text style={[styles.settingButtonText, fontSize === size && styles.settingButtonTextActive]}>
+                <Text style={[styles.settingButtonText, scaledStyles.settingButtonText, fontSize === size && styles.settingButtonTextActive]}>
                   {t(`profile.fontSizes.${size}`)}
                 </Text>
               </Pressable>
@@ -272,13 +289,13 @@ function ProfilePanelContent({
 
         {/* 언어 */}
         <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>{t('profile.language')}</Text>
+          <Text style={[styles.settingLabel, scaledStyles.settingLabel]}>{t('profile.language')}</Text>
           <View style={styles.settingButtons}>
             <Pressable
               style={[styles.settingButton, currentLang === 'ko' && styles.settingButtonActive]}
               onPress={() => handleLanguageChange('ko')}
             >
-              <Text style={[styles.settingButtonText, currentLang === 'ko' && styles.settingButtonTextActive]}>
+              <Text style={[styles.settingButtonText, scaledStyles.settingButtonText, currentLang === 'ko' && styles.settingButtonTextActive]}>
                 {t('language.korean')}
               </Text>
             </Pressable>
@@ -286,7 +303,7 @@ function ProfilePanelContent({
               style={[styles.settingButton, currentLang === 'en' && styles.settingButtonActive]}
               onPress={() => handleLanguageChange('en')}
             >
-              <Text style={[styles.settingButtonText, currentLang === 'en' && styles.settingButtonTextActive]}>
+              <Text style={[styles.settingButtonText, scaledStyles.settingButtonText, currentLang === 'en' && styles.settingButtonTextActive]}>
                 {t('language.english')}
               </Text>
             </Pressable>
@@ -297,14 +314,14 @@ function ProfilePanelContent({
       {/* 메달 섹션 */}
       {loggedIn && badges.length > 0 ? (
         <View style={styles.profileSectionCard}>
-          <Text style={styles.profileSectionTitle}>{t('profile.medals')}</Text>
+          <Text style={[styles.profileSectionTitle, scaledStyles.profileSectionTitle]}>{t('profile.medals')}</Text>
           <View style={styles.medalsGrid}>
             {badges.map((badge) => (
               <Pressable key={badge.id} style={styles.medalItem} onPress={() => onSelectBadge(badge)}>
                 <View style={styles.medalIcon}>
                   <Image source={badge.image} style={styles.medalImage} />
                 </View>
-                <Text style={styles.medalName}>{badge.name}</Text>
+                <Text style={[styles.medalName, scaledStyles.medalName]}>{badge.name}</Text>
               </Pressable>
             ))}
           </View>
@@ -313,23 +330,23 @@ function ProfilePanelContent({
 
       {/* 앱 정보 섹션 */}
       <View style={styles.profileSectionCard}>
-        <Text style={styles.profileSectionTitle}>{t('profile.appInfo')}</Text>
+        <Text style={[styles.profileSectionTitle, scaledStyles.profileSectionTitle]}>{t('profile.appInfo')}</Text>
 
         <View style={styles.appInfoRow}>
-          <Text style={styles.appInfoLabel}>{t('profile.version')}</Text>
-          <Text style={styles.appInfoValue}>{APP_VERSION}</Text>
+          <Text style={[styles.appInfoLabel, scaledStyles.appInfoLabel]}>{t('profile.version')}</Text>
+          <Text style={[styles.appInfoValue, scaledStyles.appInfoValue]}>{APP_VERSION}</Text>
         </View>
 
         <Pressable style={styles.appInfoRow} onPress={openGitHub}>
-          <Text style={styles.appInfoLabel}>GitHub</Text>
+          <Text style={[styles.appInfoLabel, scaledStyles.appInfoLabel]}>GitHub</Text>
           <View style={styles.appInfoLink}>
-            <Text style={styles.appInfoLinkText}>aodjo/devpost-hackaton</Text>
+            <Text style={[styles.appInfoLinkText, scaledStyles.appInfoValue]}>aodjo/devpost-hackaton</Text>
             <MaterialIcons name="open-in-new" size={14} color="#3b82f6" />
           </View>
         </Pressable>
 
         <Pressable style={styles.appInfoRow}>
-          <Text style={styles.appInfoLabel}>{t('profile.openSource')}</Text>
+          <Text style={[styles.appInfoLabel, scaledStyles.appInfoLabel]}>{t('profile.openSource')}</Text>
           <MaterialIcons name="chevron-right" size={20} color="#94a3b8" />
         </Pressable>
       </View>

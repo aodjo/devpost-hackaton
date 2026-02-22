@@ -4,6 +4,7 @@ import { Text, TextInput } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
 import App from './src/App'
+import { FontSizeProvider } from './src/context/FontSizeContext'
 import PretendardRegular from './assets/fonts/Pretendard-Regular.ttf'
 
 const GLOBAL_FONT_STYLE = { fontFamily: 'Pretendard-Regular' }
@@ -36,7 +37,9 @@ function Root() {
 
   return (
     <SafeAreaProvider>
-      <App />
+      <FontSizeProvider>
+        <App />
+      </FontSizeProvider>
     </SafeAreaProvider>
   )
 }
