@@ -78,6 +78,9 @@ function App() {
   const [bottomNavHeight, setBottomNavHeight] = useState(0)
   const [keyboardInset, setKeyboardInset] = useState(0)
   const [navIndicatorAnim] = useState(() => new Animated.Value(0))
+  const [obstacles, setObstacles] = useState([])
+  const [mapRegion, setMapRegion] = useState(null)
+  const obstaclesFetchTimeoutRef = useRef(null)
 
   const tileUrlTemplate = useMemo(() => {
     const normalizedBase = `${TILE_PROXY_BASE_URL}`.replace(/\/+$/, '')
@@ -182,6 +185,9 @@ function App() {
       }
       if (autocompleteTimeoutRef.current) {
         clearTimeout(autocompleteTimeoutRef.current)
+      }
+      if (obstaclesFetchTimeoutRef.current) {
+        clearTimeout(obstaclesFetchTimeoutRef.current)
       }
     }
   }, [])
@@ -309,6 +315,44 @@ function App() {
       handleSelectPlace(placeAutocomplete[0])
     }
   }
+
+  const fetchObstacles = useCallback(async (region) => {
+    if (!region) return
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/warning/viewport`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sw_latitude: region.latitude - region.latitudeDelta / 2,
+          sw_longitude: region.longitude - region.longitudeDelta / 2,
+          ne_latitude: region.latitude + region.latitudeDelta / 2,
+          ne_longitude: region.longitude + region.longitudeDelta / 2,
+        }),
+      })
+
+      const data = await response.json()
+      if (data.places) {
+        setObstacles(data.places)
+      }
+    } catch {
+      // Ignore fetch errors
+    }
+  }, [])
+
+  const handleRegionChangeComplete = useCallback((region) => {
+    setMapRegion(region)
+
+    if (obstaclesFetchTimeoutRef.current) {
+      clearTimeout(obstaclesFetchTimeoutRef.current)
+    }
+
+    obstaclesFetchTimeoutRef.current = setTimeout(() => {
+      fetchObstacles(region)
+    }, 500)
+  }, [fetchObstacles])
 
   useEffect(() => {
     if (activeTab === 'navigation') {
@@ -551,6 +595,8 @@ function App() {
           currentHeading={currentHeading}
           isBottomPanelTab={isBottomPanelTab}
           onBackgroundPress={handleBackgroundPress}
+          obstacles={obstacles}
+          onRegionChangeComplete={handleRegionChangeComplete}
           isHomeTab={isHomeTab}
           placeQuery={placeQuery}
           onPlaceQueryChange={handlePlaceQueryChange}

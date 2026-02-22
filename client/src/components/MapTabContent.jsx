@@ -24,6 +24,12 @@ const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0'
 const GITHUB_URL = 'https://github.com/aodjo/devpost-hackaton'
 const GOOGLE_ICON_URI = 'https://img.icons8.com/?size=100&id=17949&format=png&color=000000'
 
+const OBSTACLE_CONFIG = {
+  Stuff: { icon: 'warning', color: '#f59e0b', bgColor: '#fef3c7' },
+  Stair: { icon: 'stairs', color: '#3b82f6', bgColor: '#dbeafe' },
+  EV: { icon: 'elevator', color: '#10b981', bgColor: '#d1fae5' },
+}
+
 function ProfilePanelContent({
   t,
   styles,
@@ -190,6 +196,8 @@ function MapTabContent({
   currentHeading,
   isBottomPanelTab,
   onBackgroundPress,
+  obstacles = [],
+  onRegionChangeComplete,
 
   // Home search
   isHomeTab,
@@ -385,6 +393,7 @@ function MapTabContent({
         mapType={Platform.OS === 'android' ? 'none' : 'standard'}
         initialRegion={initialRegion}
         onPress={isBottomPanelTab && !isPanelExpanded ? onBackgroundPress : undefined}
+        onRegionChangeComplete={onRegionChangeComplete}
       >
         <UrlTile urlTemplate={tileUrlTemplate} maximumZ={22} shouldReplaceMapContent />
         {currentLocation ? (
@@ -425,6 +434,28 @@ function MapTabContent({
             </View>
           </Marker>
         ) : null}
+        {obstacles.map((obstacle) => {
+          const config = OBSTACLE_CONFIG[obstacle.type] || OBSTACLE_CONFIG.Stuff
+          return (
+            <Marker
+              key={`${obstacle.type}-${obstacle.latitude}-${obstacle.longitude}`}
+              coordinate={{
+                latitude: obstacle.latitude,
+                longitude: obstacle.longitude,
+              }}
+              tracksViewChanges={false}
+            >
+              <View style={[styles.obstacleMarker, { backgroundColor: config.bgColor }]}>
+                <MaterialIcons name={config.icon} size={18} color={config.color} />
+                {obstacle.ids && obstacle.ids.length > 1 ? (
+                  <View style={[styles.obstacleMarkerBadge, { backgroundColor: config.color }]}>
+                    <Text style={styles.obstacleMarkerBadgeText}>{obstacle.ids.length}</Text>
+                  </View>
+                ) : null}
+              </View>
+            </Marker>
+          )
+        })}
       </MapView>
 
       {/* Top overlay: home search + map type switch */}
