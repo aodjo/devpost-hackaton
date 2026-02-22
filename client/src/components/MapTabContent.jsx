@@ -277,7 +277,9 @@ function MapTabContent({
   routeData,
   routeObstacles,
   isLoadingRoute,
+  isFollowingRoute,
   onClearRoute,
+  onToggleRouteFollow,
   setDividerCenterY,
   dividerCenterY,
   searchButtonHeight,
@@ -310,8 +312,28 @@ function MapTabContent({
 
   // 경로 좌표 계산
   const routeCoordinates = useMemo(() => {
-    if (!routeData?.overview_polyline) return []
-    return decodePolyline(routeData.overview_polyline)
+    if (!routeData) return []
+
+    if (typeof routeData.overview_polyline === 'string' && routeData.overview_polyline.length > 0) {
+      const overviewCoordinates = decodePolyline(routeData.overview_polyline)
+      if (overviewCoordinates.length > 1) {
+        return overviewCoordinates
+      }
+    }
+
+    if (Array.isArray(routeData.steps) && routeData.steps.length > 0) {
+      const stepCoordinates = routeData.steps.flatMap((step, index) => {
+        if (!step?.polyline || typeof step.polyline !== 'string') return []
+        const decoded = decodePolyline(step.polyline)
+        if (decoded.length === 0) return []
+        return index === 0 ? decoded : decoded.slice(1)
+      })
+      if (stepCoordinates.length > 1) {
+        return stepCoordinates
+      }
+    }
+
+    return []
   }, [routeData])
 
   // 패널이 화면 상단을 넘어가지 않도록 제한
@@ -324,6 +346,9 @@ function MapTabContent({
   const hasNavigationTextInput = originInput.trim().length > 0 || destinationInput.trim().length > 0
   const isEditingNavigationInput = activeNavInput === 'origin' || activeNavInput === 'destination'
   const hasOpenAutocomplete = hasOriginAutocomplete || hasDestinationAutocomplete
+  const followButtonLabel = isFollowingRoute
+    ? t('navigation.stopFollowRoute', { defaultValue: '따라가기 중지' })
+    : t('navigation.followRoute', { defaultValue: '따라가기' })
   const showNavigationHint = isNavigationTab
     && !hasNavigationInputs
     && !isEditingNavigationInput
@@ -431,6 +456,35 @@ function MapTabContent({
     Animated.add(panelBaseTranslateY, panelExpandOffset),
     panelMinimizeOffset,
   )
+  const routeStartCoordinate = Number.isFinite(routeData?.start_location?.lat) && Number.isFinite(routeData?.start_location?.lng)
+    ? {
+      latitude: routeData.start_location.lat,
+      longitude: routeData.start_location.lng,
+    }
+    : null
+  const routeEndCoordinate = Number.isFinite(routeData?.end_location?.lat) && Number.isFinite(routeData?.end_location?.lng)
+    ? {
+      latitude: routeData.end_location.lat,
+      longitude: routeData.end_location.lng,
+    }
+    : null
+  const navigationOriginCoordinate = Number.isFinite(originPlace?.latitude) && Number.isFinite(originPlace?.longitude)
+    ? {
+      latitude: originPlace.latitude,
+      longitude: originPlace.longitude,
+    }
+    : currentLocation
+      ? {
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+      }
+      : routeStartCoordinate
+  const navigationDestinationCoordinate = Number.isFinite(destinationPlace?.latitude) && Number.isFinite(destinationPlace?.longitude)
+    ? {
+      latitude: destinationPlace.latitude,
+      longitude: destinationPlace.longitude,
+    }
+    : routeEndCoordinate
 
   return (
     <>
@@ -442,7 +496,7 @@ function MapTabContent({
         initialRegion={initialRegion}
         onPress={isBottomPanelTab && !isPanelExpanded ? onBackgroundPress : undefined}
       >
-        <UrlTile urlTemplate={tileUrlTemplate} maximumZ={22} shouldReplaceMapContent />
+        <UrlTile key={tileUrlTemplate} urlTemplate={tileUrlTemplate} maximumZ={22} shouldReplaceMapContent />
         {currentLocation ? (
           <Marker
             coordinate={currentLocation}
@@ -491,18 +545,24 @@ function MapTabContent({
             lineDashPattern={[0]}
           />
         ) : null}
-
         {/* 목적지 마커 */}
-        {destinationPlace && isNavigationTab ? (
+        {navigationOriginCoordinate && isNavigationTab ? (
           <Marker
-            coordinate={{
-              latitude: destinationPlace.latitude,
-              longitude: destinationPlace.longitude,
-            }}
-            title={destinationPlace.name}
+            coordinate={navigationOriginCoordinate}
+            title={originPlace?.name || t('navigation.currentLocation')}
+          >
+            <View style={styles.originMarker}>
+              <MaterialIcons name="flag" size={28} color="#ef4444" />
+            </View>
+          </Marker>
+        ) : null}
+        {navigationDestinationCoordinate && isNavigationTab ? (
+          <Marker
+            coordinate={navigationDestinationCoordinate}
+            title={destinationPlace?.name || t('search.destinationPlaceholder')}
           >
             <View style={styles.destinationMarker}>
-              <MaterialIcons name="flag" size={28} color="#ef4444" />
+              <MaterialIcons name="flag" size={28} color="#22c55e" />
             </View>
           </Marker>
         ) : null}
@@ -663,17 +723,20 @@ function MapTabContent({
                     activeNavInput === 'origin' && styles.inputWithAutocompleteActive,
                   ]}
                 >
-                  <TextInput
-                    ref={originRef}
-                    style={styles.input}
-                    value={originInput}
-                    onChangeText={onOriginInputChange}
-                    onFocus={() => setActiveNavInput('origin')}
-                    placeholder={t('search.originPlaceholder')}
-                    placeholderTextColor="#94a3b8"
-                  />
+                  <View style={styles.navigationInputRow}>
+                    <MaterialIcons name="flag" size={18} color="#ef4444" style={styles.navigationInputIcon} />
+                    <TextInput
+                      ref={originRef}
+                      style={[styles.input, styles.navigationInputText]}
+                      value={originInput}
+                      onChangeText={onOriginInputChange}
+                      onFocus={() => setActiveNavInput('origin')}
+                      placeholder={t('search.originPlaceholder')}
+                      placeholderTextColor="#94a3b8"
+                    />
+                  </View>
                   {activeNavInput === 'origin' && !originInput.trim() ? (
-                    <Pressable style={styles.currentLocationButton} onPress={onUseCurrentLocation} hitSlop={8}>
+                    <Pressable style={styles.currentLocationButton} onPressIn={onUseCurrentLocation} hitSlop={10}>
                       <MaterialIcons name="my-location" size={16} color="#3b82f6" />
                       <Text style={styles.currentLocationText}>{t('navigation.useCurrentLocation')}</Text>
                     </Pressable>
@@ -713,14 +776,17 @@ function MapTabContent({
                     activeNavInput === 'destination' && styles.inputWithAutocompleteActive,
                   ]}
                 >
-                  <TextInput
-                    style={styles.input}
-                    value={destinationInput}
-                    onChangeText={onDestinationInputChange}
-                    onFocus={() => setActiveNavInput('destination')}
-                    placeholder={t('search.destinationPlaceholder')}
-                    placeholderTextColor="#94a3b8"
-                  />
+                  <View style={styles.navigationInputRow}>
+                    <MaterialIcons name="flag" size={18} color="#22c55e" style={styles.navigationInputIcon} />
+                    <TextInput
+                      style={[styles.input, styles.navigationInputText]}
+                      value={destinationInput}
+                      onChangeText={onDestinationInputChange}
+                      onFocus={() => setActiveNavInput('destination')}
+                      placeholder={t('search.destinationPlaceholder')}
+                      placeholderTextColor="#94a3b8"
+                    />
+                  </View>
                   {activeNavInput === 'destination' && destinationAutocomplete.length > 0 ? (
                     <View style={styles.navAutocompleteDropdown}>
                       {destinationAutocomplete.slice(0, 4).map((prediction) => (
@@ -754,14 +820,9 @@ function MapTabContent({
                   onPress={onSearch}
                   disabled={isLoadingRoute}
                   accessibilityRole="button"
-                  accessibilityLabel={t('search.search')}
+                  accessibilityLabel={t('search.directions')}
                 >
-                  {isLoadingRoute ? (
-                    <MaterialIcons name="hourglass-empty" size={18} color="#f8fafc" />
-                  ) : (
-                    <MaterialIcons name="search" size={18} color="#f8fafc" />
-                  )}
-                  <Text style={styles.searchButtonText}>{t('search.search')}</Text>
+                  <Text style={styles.searchButtonText}>{t('search.directions')}</Text>
                 </Pressable>
               </View>
 
@@ -833,9 +894,19 @@ function MapTabContent({
                       <MaterialIcons name="close" size={18} color="#64748b" />
                       <Text style={styles.navigationClearButtonText}>{t('navigation.clearRoute')}</Text>
                     </Pressable>
-                    <Pressable style={styles.navigationStartButton}>
-                      <MaterialIcons name="navigation" size={18} color="#f8fafc" />
-                      <Text style={styles.navigationStartButtonText}>{t('navigation.startGuidance')}</Text>
+                    <Pressable
+                      style={[
+                        styles.navigationStartButton,
+                        isFollowingRoute && styles.navigationStartButtonActive,
+                      ]}
+                      onPress={onToggleRouteFollow}
+                    >
+                      <MaterialIcons
+                        name={isFollowingRoute ? 'gps-off' : 'navigation'}
+                        size={18}
+                        color="#f8fafc"
+                      />
+                      <Text style={styles.navigationStartButtonText}>{followButtonLabel}</Text>
                     </Pressable>
                   </View>
                 </>

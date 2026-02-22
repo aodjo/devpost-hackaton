@@ -28,23 +28,10 @@ const TILE_PROXY_BASE_URL =
 const API_BASE_URL =
   Constants.expoConfig?.extra?.apiBaseUrl ?? 'http://10.0.2.2:8000'
 
-const DEVICE_LOCALE = Intl.DateTimeFormat().resolvedOptions().locale ?? 'en-US'
-const NORMALIZED_LOCALE = DEVICE_LOCALE.replace('_', '-')
-const LOCALE_PARTS = NORMALIZED_LOCALE.split('-')
-const TILE_LANGUAGE = NORMALIZED_LOCALE
-const TILE_REGION =
-  LOCALE_PARTS.length > 1 &&
-    /^[A-Za-z]{2}$/.test(LOCALE_PARTS[LOCALE_PARTS.length - 1])
-    ? LOCALE_PARTS[LOCALE_PARTS.length - 1].toUpperCase()
-    : undefined
-
-const TILE_QUERY = TILE_REGION
-  ? `lang=${encodeURIComponent(TILE_LANGUAGE)}&region=${encodeURIComponent(TILE_REGION)}`
-  : `lang=${encodeURIComponent(TILE_LANGUAGE)}`
 const ANDROID_KEYBOARD_EXTRA_OFFSET = 0
 
 function App() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const insets = useSafeAreaInsets()
   const mapRef = useRef(null)
   const originRef = useRef(null)
@@ -70,6 +57,7 @@ function App() {
   const [routeData, setRouteData] = useState(null)
   const [isLoadingRoute, setIsLoadingRoute] = useState(false)
   const [routeObstacles, setRouteObstacles] = useState([])
+  const [isFollowingRoute, setIsFollowingRoute] = useState(false)
   const originAutocompleteRef = useRef(null)
   const destinationAutocompleteRef = useRef(null)
   const [currentLocation, setCurrentLocation] = useState(null)
@@ -90,9 +78,14 @@ function App() {
   const [navIndicatorAnim] = useState(() => new Animated.Value(0))
 
   const tileUrlTemplate = useMemo(() => {
+    const normalizedLanguage = `${i18n.language ?? 'en'}`.toLowerCase()
+    const isKorean = normalizedLanguage.startsWith('ko')
+    const tileLanguage = isKorean ? 'ko-KR' : 'en-US'
+    const tileRegion = isKorean ? 'KR' : 'US'
+    const tileQuery = `lang=${encodeURIComponent(tileLanguage)}&region=${encodeURIComponent(tileRegion)}`
     const normalizedBase = `${TILE_PROXY_BASE_URL}`.replace(/\/+$/, '')
-    return `${normalizedBase}/maps/tiles/{z}/{x}/{y}.png?${TILE_QUERY}&mapType=${encodeURIComponent(mapType)}`
-  }, [mapType])
+    return `${normalizedBase}/maps/tiles/{z}/{x}/{y}.png?${tileQuery}&mapType=${encodeURIComponent(mapType)}`
+  }, [mapType, i18n.language])
 
   const navigationSummary = useMemo(
     () => {
@@ -216,7 +209,7 @@ function App() {
     }
   }, [])
 
-  const focusMyLocation = () => {
+  const focusMyLocation = useCallback(() => {
     if (!currentLocation || !mapRef.current) {
       return
     }
@@ -230,7 +223,23 @@ function App() {
       },
       300,
     )
-  }
+  }, [currentLocation])
+
+  useEffect(() => {
+    if (!isFollowingRoute || !currentLocation || !mapRef.current || activeTab !== 'navigation') {
+      return
+    }
+
+    mapRef.current.animateToRegion(
+      {
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      },
+      350,
+    )
+  }, [isFollowingRoute, currentLocation, activeTab])
 
   const sanitizeNavPredictions = useCallback((predictions = []) => {
     const predictionList = Array.isArray(predictions) ? predictions : []
@@ -332,9 +341,19 @@ function App() {
     if (type === 'origin') {
       setOriginInput(prediction.main_text)
       setOriginAutocomplete([])
+      setOriginPlace({
+        placeId: prediction.place_id,
+        name: prediction.main_text,
+        address: prediction.secondary_text,
+      })
     } else {
       setDestinationInput(prediction.main_text)
       setDestinationAutocomplete([])
+      setDestinationPlace({
+        placeId: prediction.place_id,
+        name: prediction.main_text,
+        address: prediction.secondary_text,
+      })
     }
     setActiveNavInput(null)
 
@@ -406,14 +425,87 @@ function App() {
   }, [currentLocation, t])
 
   const fetchDirections = useCallback(async () => {
-    const origin = originPlace || (currentLocation ? {
+    let resolvedOrigin = Number.isFinite(originPlace?.latitude) && Number.isFinite(originPlace?.longitude)
+      ? {
+        latitude: originPlace.latitude,
+        longitude: originPlace.longitude,
+      }
+      : null
+    const originPlaceId = typeof originPlace?.placeId === 'string' ? originPlace.placeId.trim() : ''
+
+    let resolvedDestination = Number.isFinite(destinationPlace?.latitude) && Number.isFinite(destinationPlace?.longitude)
+      ? {
+        latitude: destinationPlace.latitude,
+        longitude: destinationPlace.longitude,
+      }
+      : null
+    const destinationPlaceId = typeof destinationPlace?.placeId === 'string' ? destinationPlace.placeId.trim() : ''
+
+    if (!resolvedOrigin && originPlaceId) {
+      try {
+        const originDetailsResponse = await fetch(
+          `${API_BASE_URL}/places/details/${originPlaceId}?language=ko`
+        )
+        const originDetailsData = await originDetailsResponse.json()
+        if (originDetailsData.place && Number.isFinite(originDetailsData.place.latitude) && Number.isFinite(originDetailsData.place.longitude)) {
+          resolvedOrigin = {
+            latitude: originDetailsData.place.latitude,
+            longitude: originDetailsData.place.longitude,
+          }
+          setOriginPlace((prev) => (prev ? {
+            ...prev,
+            latitude: originDetailsData.place.latitude,
+            longitude: originDetailsData.place.longitude,
+          } : prev))
+        }
+      } catch {
+        // Best-effort fallback; keep using current location if available.
+      }
+    }
+
+    if (!resolvedDestination && destinationPlaceId) {
+      try {
+        const destinationDetailsResponse = await fetch(
+          `${API_BASE_URL}/places/details/${destinationPlaceId}?language=ko`
+        )
+        const destinationDetailsData = await destinationDetailsResponse.json()
+        if (destinationDetailsData.place && Number.isFinite(destinationDetailsData.place.latitude) && Number.isFinite(destinationDetailsData.place.longitude)) {
+          resolvedDestination = {
+            latitude: destinationDetailsData.place.latitude,
+            longitude: destinationDetailsData.place.longitude,
+          }
+          setDestinationPlace((prev) => (prev ? {
+            ...prev,
+            latitude: destinationDetailsData.place.latitude,
+            longitude: destinationDetailsData.place.longitude,
+          } : prev))
+        }
+      } catch {
+        // If details resolution fails, route lookup will fail below with a clear alert.
+      }
+    }
+
+    const origin = resolvedOrigin || (currentLocation ? {
       latitude: currentLocation.latitude,
       longitude: currentLocation.longitude,
     } : null)
 
-    if (!origin || !destinationPlace) {
+    if (!origin || !resolvedDestination) {
       Alert.alert(t('navigation.error'), t('navigation.selectBothLocations'))
       return
+    }
+
+    if (mapRef.current) {
+      const midLat = (origin.latitude + resolvedDestination.latitude) / 2
+      const midLng = (origin.longitude + resolvedDestination.longitude) / 2
+      const latDelta = Math.abs(origin.latitude - resolvedDestination.latitude) * 1.5
+      const lngDelta = Math.abs(origin.longitude - resolvedDestination.longitude) * 1.5
+      mapRef.current.animateToRegion({
+        latitude: midLat,
+        longitude: midLng,
+        latitudeDelta: Math.max(latDelta, 0.01),
+        longitudeDelta: Math.max(lngDelta, 0.01),
+      }, 350)
     }
 
     setIsLoadingRoute(true)
@@ -427,14 +519,18 @@ function App() {
         body: JSON.stringify({
           origin_latitude: origin.latitude,
           origin_longitude: origin.longitude,
-          destination_latitude: destinationPlace.latitude,
-          destination_longitude: destinationPlace.longitude,
+          destination_latitude: resolvedDestination.latitude,
+          destination_longitude: resolvedDestination.longitude,
           avoid_obstacles: true,
           language: 'ko',
         }),
       })
 
       const data = await response.json()
+      if (!response.ok) {
+        Alert.alert(t('navigation.error'), data?.detail || t('navigation.routeError'))
+        return
+      }
 
       if (data.recommended_route) {
         setRouteData(data.recommended_route)
@@ -456,6 +552,8 @@ function App() {
             longitudeDelta: Math.max(lngDelta, 0.01),
           }, 500)
         }
+      } else {
+        Alert.alert(t('navigation.error'), t('navigation.routeError'))
       }
     } catch (error) {
       console.error('Directions error:', error)
@@ -469,7 +567,28 @@ function App() {
     fetchDirections()
   }
 
+  const handleToggleRouteFollow = useCallback(() => {
+    if (isFollowingRoute) {
+      setIsFollowingRoute(false)
+      return
+    }
+
+    if (!hasRouteData) {
+      Alert.alert(t('navigation.error'), t('navigation.selectBothLocations'))
+      return
+    }
+
+    if (!currentLocation) {
+      Alert.alert(t('navigation.error'), t('location.loadFailed'))
+      return
+    }
+
+    setIsFollowingRoute(true)
+    focusMyLocation()
+  }, [isFollowingRoute, hasRouteData, currentLocation, focusMyLocation, t])
+
   const handleClearRoute = useCallback(() => {
+    setIsFollowingRoute(false)
     setRouteData(null)
     setRouteObstacles([])
     setOriginInput('')
@@ -625,6 +744,12 @@ function App() {
   const isProfileTab = activeTab === 'profile'
   const isBottomPanelTab = isTransitTab || isNavigationTab || isProfileTab
   const androidKeyboardInset = Platform.OS === 'android' ? keyboardInset : 0
+
+  useEffect(() => {
+    if (!isNavigationTab || !hasRouteData) {
+      setIsFollowingRoute(false)
+    }
+  }, [isNavigationTab, hasRouteData])
 
   useEffect(() => {
     Animated.timing(collapseAnim, {
@@ -862,7 +987,9 @@ function App() {
           routeData={routeData}
           routeObstacles={routeObstacles}
           isLoadingRoute={isLoadingRoute}
+          isFollowingRoute={isFollowingRoute}
           onClearRoute={handleClearRoute}
+          onToggleRouteFollow={handleToggleRouteFollow}
           setDividerCenterY={setDividerCenterY}
           dividerCenterY={dividerCenterY}
           searchButtonHeight={SEARCH_BUTTON_HEIGHT}

@@ -26,3 +26,4 @@ dist-ssr
 venv/
 __pycache__/
 app.db
+warning_place_img
