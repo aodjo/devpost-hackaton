@@ -194,7 +194,12 @@ function MapTabContent({
   // Home search
   isHomeTab,
   placeQuery,
-  setPlaceQuery,
+  onPlaceQueryChange,
+  placeAutocomplete,
+  onSelectPlace,
+  selectedPlace,
+  onClearSelectedPlace,
+  isSearching,
   onPlaceSearch,
 
   // Map type controls
@@ -406,29 +411,78 @@ function MapTabContent({
             </View>
           </Marker>
         ) : null}
+        {selectedPlace ? (
+          <Marker
+            coordinate={{
+              latitude: selectedPlace.latitude,
+              longitude: selectedPlace.longitude,
+            }}
+            title={selectedPlace.name}
+            description={selectedPlace.address}
+          >
+            <View style={styles.selectedPlaceMarker}>
+              <MaterialIcons name="place" size={36} color="#ef4444" />
+            </View>
+          </Marker>
+        ) : null}
       </MapView>
 
       {/* Top overlay: home search + map type switch */}
       <View style={[styles.topPanel, { top: topPanelTop }]}>
         {isHomeTab ? (
-          <View style={[styles.inputCard, styles.homeInputCard]}>
-            <TextInput
-              style={styles.homeInput}
-              value={placeQuery}
-              onChangeText={setPlaceQuery}
-              placeholder={t('search.placeSearchPlaceholder')}
-              placeholderTextColor="#475569"
-              returnKeyType="search"
-              onSubmitEditing={onPlaceSearch}
-            />
-            <Pressable
-              style={styles.homeSearchButton}
-              onPress={onPlaceSearch}
-              accessibilityRole="button"
-              accessibilityLabel={t('search.search')}
-            >
-              <MaterialIcons name="search" size={20} color="#f8fafc" />
-            </Pressable>
+          <View style={styles.searchContainer}>
+            <View style={[styles.inputCard, styles.homeInputCard]}>
+              <TextInput
+                style={styles.homeInput}
+                value={placeQuery}
+                onChangeText={onPlaceQueryChange}
+                placeholder={t('search.placeSearchPlaceholder')}
+                placeholderTextColor="#475569"
+                returnKeyType="search"
+                onSubmitEditing={onPlaceSearch}
+              />
+              {placeQuery.length > 0 ? (
+                <Pressable
+                  style={styles.clearButton}
+                  onPress={onClearSelectedPlace}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear"
+                >
+                  <MaterialIcons name="close" size={18} color="#94a3b8" />
+                </Pressable>
+              ) : null}
+              <Pressable
+                style={styles.homeSearchButton}
+                onPress={onPlaceSearch}
+                accessibilityRole="button"
+                accessibilityLabel={t('search.search')}
+              >
+                {isSearching ? (
+                  <MaterialIcons name="hourglass-empty" size={20} color="#f8fafc" />
+                ) : (
+                  <MaterialIcons name="search" size={20} color="#f8fafc" />
+                )}
+              </Pressable>
+            </View>
+
+            {/* Autocomplete dropdown */}
+            {placeAutocomplete.length > 0 ? (
+              <View style={styles.autocompleteDropdown}>
+                {placeAutocomplete.map((prediction) => (
+                  <Pressable
+                    key={prediction.place_id}
+                    style={styles.autocompleteItem}
+                    onPress={() => onSelectPlace(prediction)}
+                  >
+                    <MaterialIcons name="place" size={18} color="#64748b" />
+                    <View style={styles.autocompleteTextContainer}>
+                      <Text style={styles.autocompleteMainText}>{prediction.main_text}</Text>
+                      <Text style={styles.autocompleteSecondaryText}>{prediction.secondary_text}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
           </View>
         ) : null}
 
@@ -645,9 +699,67 @@ function MapTabContent({
         ) : null}
       </Animated.View>
 
+      {/* Place info panel */}
+      {selectedPlace && isHomeTab ? (
+        <View style={[styles.placeInfoPanel, { bottom: panelBottomClearance }]}>
+          {/* Rating badge at top */}
+          {selectedPlace.rating ? (
+            <View style={styles.placeInfoRatingBadge}>
+              <MaterialIcons name="star" size={16} color="#fff" />
+              <Text style={styles.placeInfoRatingBadgeText}>{selectedPlace.rating}</Text>
+              {selectedPlace.userRatingsTotal ? (
+                <Text style={styles.placeInfoRatingBadgeCount}>({selectedPlace.userRatingsTotal})</Text>
+              ) : null}
+            </View>
+          ) : null}
+
+          <View style={styles.placeInfoHeader}>
+            <Text style={styles.placeInfoName}>{selectedPlace.name}</Text>
+            <Pressable style={styles.placeInfoCloseButton} onPress={onClearSelectedPlace}>
+              <MaterialIcons name="close" size={20} color="#64748b" />
+            </Pressable>
+          </View>
+
+          <Text style={styles.placeInfoAddress}>{selectedPlace.address}</Text>
+
+          {selectedPlace.openNow !== undefined ? (
+            <View style={styles.placeInfoOpenStatus}>
+              <View style={[styles.placeInfoOpenDot, selectedPlace.openNow ? styles.placeInfoOpenDotOpen : styles.placeInfoOpenDotClosed]} />
+              <Text style={[styles.placeInfoOpenText, selectedPlace.openNow ? styles.placeInfoOpenTextOpen : styles.placeInfoOpenTextClosed]}>
+                {selectedPlace.openNow ? t('search.openNow') : t('search.closed')}
+              </Text>
+            </View>
+          ) : null}
+
+          <View style={styles.placeInfoActions}>
+            {selectedPlace.phone ? (
+              <Pressable style={styles.placeInfoActionButton} onPress={() => Linking.openURL(`tel:${selectedPlace.phone}`)}>
+                <MaterialIcons name="phone" size={18} color="#3b82f6" />
+                <Text style={styles.placeInfoActionText}>{t('search.call')}</Text>
+              </Pressable>
+            ) : null}
+            {selectedPlace.googleMapsUrl ? (
+              <Pressable style={styles.placeInfoActionButton} onPress={() => Linking.openURL(selectedPlace.googleMapsUrl)}>
+                <MaterialIcons name="directions" size={18} color="#3b82f6" />
+                <Text style={styles.placeInfoActionText}>{t('search.directions')}</Text>
+              </Pressable>
+            ) : null}
+            {selectedPlace.website ? (
+              <Pressable style={styles.placeInfoActionButton} onPress={() => Linking.openURL(selectedPlace.website)}>
+                <MaterialIcons name="language" size={18} color="#3b82f6" />
+                <Text style={styles.placeInfoActionText}>{t('search.website')}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
+
       {/* Floating "focus my location" button */}
       <Pressable
-        style={[styles.focusButton, { bottom: focusButtonBottom }]}
+        style={[
+          styles.focusButton,
+          { bottom: selectedPlace && isHomeTab ? panelBottomClearance + 180 : focusButtonBottom },
+        ]}
         onPress={onFocusMyLocation}
         accessibilityRole="button"
         accessibilityLabel={t('map.focusMyLocation')}

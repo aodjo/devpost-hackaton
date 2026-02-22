@@ -19,7 +19,12 @@
     "placeSearchPlaceholder": "Search buildings, places",
     "originPlaceholder": "Enter origin",
     "destinationPlaceholder": "Enter destination",
-    "search": "Search"
+    "search": "Search",
+    "openNow": "Open now",
+    "closed": "Closed",
+    "call": "Call",
+    "directions": "Directions",
+    "website": "Website"
   },
   "transit": {
     "bus": "Bus",
