@@ -102,9 +102,19 @@ POST /warning/add_place
     "name": "제보 이름",
     "latitude": 37.5665,
     "longitude": 126.9780,
-    "description": "제보 내용"
+    "description": "제보 내용",
+    "type": "obstacle"
 }
 ```
+
+| 필드 | 타입 | 필수 | 설명 |
+|-----|------|------|------|
+| user_id | int | O | 사용자 ID |
+| name | string | O | 제보 이름 |
+| latitude | float | O | 위도 |
+| longitude | float | O | 경도 |
+| description | string | O | 제보 내용 |
+| type | string | X | 타입: `obstacle`(기본), `stairs`, `elevator` |
 
 #### Response (200 OK)
 ```json
@@ -176,6 +186,7 @@ POST /warning/get_place/
             "latitude": 37.5670,
             "longitude": 126.9785,
             "description": "장애물 설명",
+            "type": "obstacle",
             "has_image": 1,
             "verification_count": 5,
             "created_at": "2024-01-01 12:00:00",
@@ -208,6 +219,7 @@ GET /warning/get_place/{place_id}
         "latitude": 37.5670,
         "longitude": 126.9785,
         "description": "장애물 설명",
+        "type": "obstacle",
         "has_image": 1,
         "verification_count": 5,
         "created_at": "2024-01-01 12:00:00",
@@ -396,12 +408,31 @@ POST /badge/user/{user_id}/evaluate
 
 ## 뱃지 종류
 
-| 뱃지명 | 조건 |
-|-------|------|
-| First Reporter | 장애물 1개 이상 신고 |
-| Explorer | 장애물 10개 이상 신고 |
-| Photo Contributor | 사진 5개 이상 업로드 |
-| Guardian | 검증 10회 이상 |
+| 뱃지명 | 설명 | 달성 조건 |
+|-------|------|----------|
+| 첫 발걸음 | OpenRoute에 오신 것을 환영해요! | OpenRoute 첫 가입 |
+| 눈 밝은 시민 | 첫 접근성 정보를 제보했어요 | 처음으로 정보 제공 |
+| 불꽃 튀는 루틴 | 7일 연속으로 제보를 이어갔어요 | 7일 연속 지역 정보 등록 |
+| 길잡이 | 제보 10회를 달성했어요 | 지역 정보 등록 10회 달성 |
+| 오늘은 내가 거리의 수호자 | 제보 30회를 달성했어요 | 지역 정보 등록 30회 달성 |
+| 계단 스카우트 | 첫 계단 정보를 등록했어요 | 처음으로 계단 정보 등록 |
+| 든든한 동행자 | 1년간 접근성 정보를 등록했어요 | OpenRoute 1년 가입 |
+| 엘리베이터 가이드 | 첫 엘레베이터 정보를 등록했어요 | 처음으로 엘레베이터 정보 등록 |
+
+### 뱃지 목록 조회
+```
+GET /badge/list
+```
+
+#### Response (200 OK)
+```json
+{
+    "badges": [
+        {"name": "첫 발걸음", "description": "OpenRoute에 오신 것을 환영해요!"},
+        {"name": "눈 밝은 시민", "description": "첫 접근성 정보를 제보했어요"}
+    ]
+}
+```
 
 ---
 
