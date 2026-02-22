@@ -320,7 +320,7 @@ function App() {
 
         <View style={styles.topPanel}>
           {isHomeTab ? (
-            <View style={styles.inputCard}>
+            <View style={[styles.inputCard, styles.homeInputCard]}>
               <TextInput
                 style={styles.homeInput}
                 value={placeQuery}
@@ -632,6 +632,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
     elevation: 4,
   },
+  homeInputCard: {
+    paddingVertical: 8,
+    gap: 6,
+  },
   input: {
     fontSize: 15,
     color: '#0f172a',
@@ -641,15 +645,15 @@ const styles = StyleSheet.create({
   },
   homeInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: '#0f172a',
     fontWeight: '600',
     paddingHorizontal: 6,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   homeSearchButton: {
     width: 42,
-    height: 42,
+    height: 38,
     borderRadius: 12,
     backgroundColor: '#0f172a',
     alignItems: 'center',
