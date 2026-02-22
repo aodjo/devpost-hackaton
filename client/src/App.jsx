@@ -266,6 +266,14 @@ function App() {
           address: place.address,
           latitude: place.latitude,
           longitude: place.longitude,
+          phone: place.phone,
+          rating: place.rating,
+          userRatingsTotal: place.user_ratings_total,
+          openingHours: place.opening_hours,
+          openNow: place.open_now,
+          website: place.website,
+          googleMapsUrl: place.google_maps_url,
+          types: place.types,
         })
 
         if (mapRef.current) {

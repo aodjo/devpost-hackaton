@@ -19,7 +19,12 @@
     "placeSearchPlaceholder": "건물, 장소 검색",
     "originPlaceholder": "출발지 입력",
     "destinationPlaceholder": "목적지 입력",
-    "search": "검색"
+    "search": "검색",
+    "openNow": "영업 중",
+    "closed": "영업 종료",
+    "call": "전화",
+    "directions": "길찾기",
+    "website": "웹사이트"
   },
   "transit": {
     "bus": "버스",
