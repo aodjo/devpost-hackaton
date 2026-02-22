@@ -1,4 +1,4 @@
-import { StatusBar } from 'expo-status-bar'
+﻿import { StatusBar } from 'expo-status-bar'
 import Constants from 'expo-constants'
 import * as Location from 'expo-location'
 import { MaterialIcons } from '@expo/vector-icons'
@@ -35,8 +35,9 @@ const LABELS = {
   subway: '\uC9C0\uD558\ucca0',
   originPlaceholder: '\uCD9C\uBC1C\uC9C0 \uC785\uB825',
   destinationPlaceholder: '\uBAA9\uC801\uC9C0 \uC785\uB825',
-  permissionRequired: '\uC704\uCE58 \uAD8C\uD55C\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.',
-  locationLoadFailed: '\uC704\uCE58 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.',
+  search: '\uAC80\uC0C9',
+  permissionRequired: '\uC704\uCE58 \uAD8C\uD55C \uD544\uC694',
+  locationLoadFailed: '\uC704\uCE58 \uBD88\uB7EC\uC624\uAE30 \uC2E4\uD328',
   focusMyLocation: '\uB0B4 \uC704\uCE58\uB85C \uD3EC\uCEE4\uC2A4',
 }
 
@@ -48,11 +49,14 @@ const INITIAL_REGION = {
   latitudeDelta: 0.05,
   longitudeDelta: 0.05,
 }
+const SEARCH_BUTTON_HEIGHT = 34
+const NAVBAR_RADIUS = 14
+const NAVBAR_VERTICAL_PADDING = 8
 
 function App() {
   const mapRef = useRef(null)
   const originRef = useRef(null)
-  const collapseAnim = useRef(new Animated.Value(0)).current
+  const [collapseAnim] = useState(() => new Animated.Value(0))
   const [mapType, setMapType] = useState('roadmap')
   const [activeTab, setActiveTab] = useState(LABELS.home)
   const [transitType, setTransitType] = useState('bus')
@@ -60,6 +64,7 @@ function App() {
   const [destinationInput, setDestinationInput] = useState('')
   const [currentLocation, setCurrentLocation] = useState(null)
   const [locationError, setLocationError] = useState('')
+  const [dividerCenterY, setDividerCenterY] = useState(null)
 
   const transitRoutes = [
     {
@@ -182,6 +187,12 @@ function App() {
     )
   }
 
+  const handleSearch = () => {
+    if (!originInput && !destinationInput) {
+      return
+    }
+  }
+
   useEffect(() => {
     if (activeTab === LABELS.navigation) {
       originRef.current?.focus()
@@ -245,7 +256,13 @@ function App() {
               placeholder={LABELS.originPlaceholder}
               placeholderTextColor="#94a3b8"
             />
-            <View style={styles.inputDivider} />
+            <View
+              style={styles.inputDivider}
+              onLayout={(event) => {
+                const { y, height } = event.nativeEvent.layout
+                setDividerCenterY(y + height / 2)
+              }}
+            />
             <TextInput
               style={styles.input}
               value={destinationInput}
@@ -253,6 +270,20 @@ function App() {
               placeholder={LABELS.destinationPlaceholder}
               placeholderTextColor="#94a3b8"
             />
+            <Pressable
+              style={[
+                styles.searchButton,
+                dividerCenterY == null
+                  ? styles.searchButtonFallback
+                  : { top: dividerCenterY - SEARCH_BUTTON_HEIGHT / 2 },
+              ]}
+              onPress={handleSearch}
+              accessibilityRole="button"
+              accessibilityLabel={LABELS.search}
+            >
+              <MaterialIcons name="search" size={18} color="#f8fafc" />
+              <Text style={styles.searchButtonText}>{LABELS.search}</Text>
+            </Pressable>
           </View>
 
           <Animated.View style={[styles.mapTypeRow, mapTypeRowAnimatedStyle]}>
@@ -422,20 +453,56 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   inputCard: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 12,
-    padding: 10,
+    position: 'relative',
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderRadius: 14,
+    padding: 12,
     gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.28)',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4,
   },
   input: {
     fontSize: 15,
     color: '#0f172a',
     paddingHorizontal: 6,
     paddingVertical: 8,
+    paddingRight: 92,
   },
   inputDivider: {
     height: 1,
     backgroundColor: '#cbd5e1',
+    marginRight: 84,
+  },
+  searchButton: {
+    position: 'absolute',
+    right: 10,
+    minWidth: 68,
+    height: SEARCH_BUTTON_HEIGHT,
+    borderRadius: 17,
+    backgroundColor: '#0f172a',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    shadowColor: '#020617',
+    shadowOpacity: 0.24,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
+  },
+  searchButtonFallback: {
+    top: 32,
+  },
+  searchButtonText: {
+    color: '#f8fafc',
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 4,
   },
   mapTypeRow: {
     flexDirection: 'row',
@@ -472,13 +539,14 @@ const styles = StyleSheet.create({
   locationError: {
     position: 'absolute',
     left: 12,
-    bottom: 96,
+    bottom: 74,
     backgroundColor: 'rgba(15, 23, 42, 0.9)',
     color: '#f8fafc',
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: NAVBAR_VERTICAL_PADDING,
+    borderRadius: NAVBAR_RADIUS,
     fontSize: 12,
+    overflow: 'hidden',
   },
   locationDotOuter: {
     width: 18,
@@ -503,8 +571,8 @@ const styles = StyleSheet.create({
     bottom: 12,
     flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 14,
-    paddingVertical: 8,
+    borderRadius: NAVBAR_RADIUS,
+    paddingVertical: NAVBAR_VERTICAL_PADDING,
     paddingHorizontal: 6,
     zIndex: 20,
     elevation: 20,
