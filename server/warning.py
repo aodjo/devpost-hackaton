@@ -1,7 +1,6 @@
 import sqlite3
 import os
 import io
-import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
@@ -16,6 +15,7 @@ router = APIRouter(prefix="/warning", tags=["warning"])
 
 
 class RequestAddWarningPlace(BaseModel):
+    user_id: int
     name: str
     latitude: float
     longitude: float
@@ -36,10 +36,19 @@ def add_warning_place(
 ) -> dict:
     try:
         cursor = db.execute(
-            "INSERT INTO warning_places (name, latitude, longitude, description) VALUES (?, ?, ?, ?)",
-            (place.name, place.latitude, place.longitude, place.description),
+            """INSERT INTO warning_places
+               (user_id, name, latitude, longitude, description)
+               VALUES (?, ?, ?, ?, ?)""",
+            (place.user_id, place.name, place.latitude, place.longitude, place.description),
         )
-        return {"message": "Warning place added successfully", "id": cursor.lastrowid}
+        place_id = cursor.lastrowid
+
+        db.execute(
+            "UPDATE users SET obstacles_reported = obstacles_reported + 1 WHERE id = ?",
+            (place.user_id,),
+        )
+
+        return {"message": "Warning place added successfully", "id": place_id}
     except sqlite3.OperationalError:
         raise HTTPException(status_code=500, detail="Database operational error")
     except Exception:
@@ -58,7 +67,9 @@ def get_warning_places(
 
     try:
         rows = db.execute(
-            "SELECT * FROM warning_places WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ?",
+            """SELECT id, user_id, name, latitude, longitude, description, has_image, created_at, updated_at
+               FROM warning_places
+               WHERE latitude <= ? AND latitude >= ? AND longitude <= ? AND longitude >= ?""",
             (max_latitude, min_latitude, max_longitude, min_longitude),
         ).fetchall()
 
@@ -75,7 +86,8 @@ def get_warning_place_by_id(
 ) -> dict:
     try:
         row = db.execute(
-            "SELECT * FROM warning_places WHERE id = ?",
+            """SELECT id, user_id, name, latitude, longitude, description, has_image, created_at, updated_at
+               FROM warning_places WHERE id = ?""",
             (place_id,),
         ).fetchone()
 
@@ -96,6 +108,7 @@ WARNING_PLACE_IMG_PATH = Path(os.getenv("WARNING_PLACE_IMG_PATH", "./warning_pla
 async def update_warning_place_img(
     place_id: int,
     image: UploadFile = File(...),
+    db: sqlite3.Connection = Depends(get_db),
 ) -> dict:
     try:
         if image.content_type != "image/png":
@@ -103,6 +116,16 @@ async def update_warning_place_img(
 
         if not (image.filename or "").lower().endswith(".png"):
             raise HTTPException(status_code=415, detail="PNG만 업로드 가능합니다 (확장자).")
+
+        row = db.execute(
+            "SELECT user_id FROM warning_places WHERE id = ?",
+            (place_id,),
+        ).fetchone()
+
+        if row is None:
+            raise HTTPException(status_code=404, detail="Warning place not found")
+
+        user_id = row["user_id"]
 
         data = await image.read()
         img = Image.open(io.BytesIO(data))
@@ -115,6 +138,16 @@ async def update_warning_place_img(
 
         with save_path.open("wb") as f:
             f.write(data)
+
+        db.execute(
+            "UPDATE warning_places SET has_image = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (place_id,),
+        )
+
+        db.execute(
+            "UPDATE users SET photos_uploaded = photos_uploaded + 1 WHERE id = ?",
+            (user_id,),
+        )
 
         return {"message": "Warning place image updated successfully"}
     except HTTPException:
