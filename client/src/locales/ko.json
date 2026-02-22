@@ -100,9 +100,6 @@
     "next": "다음",
     "switchCamera": "카메라 전환"
   },
-  "obstacle": {
-    "verifications": "검증"
-  },
   "report": {
     "name": "정보 이름",
     "namePlaceholder": "접근성 정보 이름을 입력하세요",

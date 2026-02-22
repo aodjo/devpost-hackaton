@@ -100,9 +100,6 @@
     "next": "Next",
     "switchCamera": "Switch Camera"
   },
-  "obstacle": {
-    "verifications": "verifications"
-  },
   "report": {
     "name": "Name",
     "namePlaceholder": "Enter accessibility info name",

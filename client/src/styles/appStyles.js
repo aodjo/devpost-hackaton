@@ -181,11 +181,6 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  obstacleInfoTypeBadgeCount: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 11,
-    fontWeight: '500',
-  },
   obstacleInfoHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -220,14 +215,31 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
   },
-  obstacleInfoMetaItem: {
+  obstacleInfoUploader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
   },
-  obstacleInfoMetaText: {
-    fontSize: 12,
-    color: '#64748b',
+  obstacleInfoUploaderAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  obstacleInfoUploaderAvatarPlaceholder: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  obstacleInfoUploaderText: {
+    fontSize: 13,
+    color: '#475569',
+    fontWeight: '500',
   },
   placeInfoPanel: {
     position: 'absolute',

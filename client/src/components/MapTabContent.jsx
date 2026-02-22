@@ -806,9 +806,6 @@ function MapTabContent({
               <View style={[styles.obstacleInfoTypeBadge, { backgroundColor: OBSTACLE_CONFIG[selectedObstacle.type]?.color || '#f59e0b' }]}>
                 <FontAwesome5 name={OBSTACLE_CONFIG[selectedObstacle.type]?.icon || 'exclamation-triangle'} size={12} color="#fff" solid />
                 <Text style={styles.obstacleInfoTypeBadgeText}>{t(`report.types.${selectedObstacle.type}`)}</Text>
-                {selectedObstacle.totalCount > 1 ? (
-                  <Text style={styles.obstacleInfoTypeBadgeCount}>+{selectedObstacle.totalCount - 1}</Text>
-                ) : null}
               </View>
 
               <View style={styles.obstacleInfoHeader}>
@@ -826,12 +823,18 @@ function MapTabContent({
                 <Image source={{ uri: selectedObstacle.imageUrl }} style={styles.obstacleInfoImage} />
               ) : null}
 
-              <View style={styles.obstacleInfoMeta}>
-                <View style={styles.obstacleInfoMetaItem}>
-                  <MaterialIcons name="verified" size={14} color="#64748b" />
-                  <Text style={styles.obstacleInfoMetaText}>{selectedObstacle.verification_count || 0} {t('obstacle.verifications')}</Text>
+              {selectedObstacle.uploaderName ? (
+                <View style={styles.obstacleInfoUploader}>
+                  {selectedObstacle.uploaderImage ? (
+                    <Image source={{ uri: selectedObstacle.uploaderImage }} style={styles.obstacleInfoUploaderAvatar} />
+                  ) : (
+                    <View style={styles.obstacleInfoUploaderAvatarPlaceholder}>
+                      <MaterialIcons name="person" size={14} color="#94a3b8" />
+                    </View>
+                  )}
+                  <Text style={styles.obstacleInfoUploaderText}>{selectedObstacle.uploaderName}</Text>
                 </View>
-              </View>
+              ) : null}
             </>
           )}
         </View>

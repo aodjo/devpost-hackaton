@@ -391,10 +391,29 @@ function App() {
       const data = await response.json()
 
       if (data.place) {
+        let uploaderName = null
+        let uploaderImage = null
+
+        // 업로더 정보 가져오기
+        if (data.place.user_id) {
+          try {
+            const userResponse = await fetch(`${API_BASE_URL}/badge/user/${data.place.user_id}`)
+            const userData = await userResponse.json()
+            if (userData.user) {
+              uploaderName = userData.user.username
+              uploaderImage = userData.user.profile_image
+            }
+          } catch {
+            // Ignore user fetch errors
+          }
+        }
+
         setSelectedObstacle({
           ...data.place,
           imageUrl: data.place.has_image ? `${API_BASE_URL}/warning/get_place_img/${placeId}` : null,
           totalCount: obstacle.ids.length,
+          uploaderName,
+          uploaderImage,
         })
       }
     } catch {
