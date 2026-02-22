@@ -8,18 +8,18 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).with_name(".env"))
+
 import httpx
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import PlainTextResponse
-from dotenv import load_dotenv
 
 from db import init_db
 from warning import router as warning_router
 from badge import router as badge_router
 from auth import router as auth_router
 from places import router as places_router
-
-load_dotenv(Path(__file__).with_name(".env"))
 
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 DEFAULT_MAP_TYPE = os.getenv("GOOGLE_MAP_TYPE", "roadmap")

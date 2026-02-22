@@ -109,10 +109,12 @@ def add_warning_place(
         _update_consecutive_days(db, place.user_id)
 
         return {"message": "Warning place added successfully", "id": place_id}
-    except sqlite3.OperationalError:
-        raise HTTPException(status_code=500, detail="Database operational error")
-    except Exception:
-        raise HTTPException(status_code=500, detail="Failed to add warning place")
+    except sqlite3.OperationalError as e:
+        print(f"[DB Error] add_place: {e}")
+        raise HTTPException(status_code=500, detail=f"Database operational error: {e}")
+    except Exception as e:
+        print(f"[Error] add_place: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to add warning place: {e}")
 
 
 @router.post("/viewport")

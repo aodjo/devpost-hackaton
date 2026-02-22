@@ -58,6 +58,23 @@ def init_db() -> None:
                 PRIMARY KEY (user_id, badge_name)
             );
         """)
+
+        # 기존 테이블에 누락된 컬럼 추가 (마이그레이션)
+        migrations = [
+            ("users", "stairs_reported", "INTEGER DEFAULT 0"),
+            ("users", "elevators_reported", "INTEGER DEFAULT 0"),
+            ("users", "consecutive_days", "INTEGER DEFAULT 0"),
+            ("users", "last_report_date", "TEXT"),
+            ("warning_places", "type", "TEXT DEFAULT 'Stuff'"),
+            ("warning_places", "has_image", "INTEGER DEFAULT 0"),
+            ("warning_places", "verification_count", "INTEGER DEFAULT 0"),
+        ]
+
+        for table, column, col_type in migrations:
+            try:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+            except sqlite3.OperationalError:
+                pass  # 이미 존재함
         conn.commit()
     finally:
         conn.close()
