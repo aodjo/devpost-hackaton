@@ -486,10 +486,24 @@ GET /badge/list
 
 ## 지도 타일 (Map Tiles)
 
+Google Maps 타일을 프록시하여 클라이언트에 제공합니다. 서버 측 캐싱과 HTTP/2를 통해 성능을 최적화합니다.
+
+### 개요
+
+| 항목 | 설명 |
+|-----|------|
+| 프록시 대상 | Google Maps Tiles API |
+| 캐싱 | LRU 캐시 (기본 1000개 타일, 1시간 TTL) |
+| 프로토콜 | HTTP/2 지원 |
+| 세션 관리 | 자동 갱신 (만료 전 60초에 갱신) |
+
+---
+
 ### 헬스 체크
 ```
 GET /health
 ```
+서버 상태를 확인합니다.
 
 #### Response (200 OK)
 ```
@@ -502,25 +516,147 @@ ok
 ```
 GET /maps/tiles/{z}/{x}/{y}.png
 ```
-Google Maps 타일을 프록시합니다.
+Google Maps 타일을 프록시하여 반환합니다.
 
 #### Path Parameters
-| 파라미터 | 타입 | 설명 |
-|---------|------|------|
-| z | int | 줌 레벨 (0-22) |
-| x | int | X 좌표 |
-| y | int | Y 좌표 |
+| 파라미터 | 타입 | 범위 | 설명 |
+|---------|------|------|------|
+| z | int | 0-22 | 줌 레벨 |
+| x | int | 0 ~ 2^z-1 | X 타일 좌표 |
+| y | int | 0 ~ 2^z-1 | Y 타일 좌표 |
 
 #### Query Parameters
 | 파라미터 | 타입 | 기본값 | 설명 |
 |---------|------|--------|------|
-| lang | string | ko-KR | 타일 언어 |
-| region | string | KR | 타일 지역 |
-| mapType | string | roadmap | 지도 유형 (roadmap/satellite/terrain) |
+| lang | string | ko-KR | 타일 언어 (BCP-47 형식) |
+| region | string | KR | 타일 지역 (ISO 3166-1 alpha-2) |
+| mapType | string | roadmap | 지도 유형 |
+
+#### mapType 옵션
+| 값 | 설명 |
+|----|------|
+| roadmap | 일반 도로 지도 |
+| satellite | 위성 이미지 |
+| terrain | 지형 지도 |
+
+#### Response Headers
+| 헤더 | 설명 |
+|-----|------|
+| Cache-Control | 캐시 정책 (기본: public, max-age=3600) |
+| X-Tile-Proxy | 프록시 식별자 (google-map-tiles) |
+| X-Tile-Language | 적용된 언어 |
+| X-Tile-Region | 적용된 지역 |
+| X-Cache | 캐시 상태 (HIT/MISS) |
 
 #### Response (200 OK)
 - Content-Type: `image/png`
-- 지도 타일 이미지
+- 256x256 픽셀 지도 타일 이미지
+
+#### 사용 예시
+
+**기본 요청**
+```
+GET /maps/tiles/15/27959/12824.png
+```
+
+**한국어 + 위성 지도**
+```
+GET /maps/tiles/15/27959/12824.png?lang=ko-KR&region=KR&mapType=satellite
+```
+
+**영어 + 지형 지도**
+```
+GET /maps/tiles/12/3456/1234.png?lang=en-US&region=US&mapType=terrain
+```
+
+#### 줌 레벨 참고
+
+| 줌 레벨 | 대략적 범위 |
+|--------|------------|
+| 0 | 전 세계 |
+| 5 | 대륙 |
+| 10 | 도시 |
+| 15 | 거리 |
+| 18 | 건물 |
+| 22 | 최대 확대 |
+
+#### Error Response
+
+| 상태 코드 | 원인 |
+|----------|------|
+| 400 | 잘못된 z/x/y 좌표 |
+| 500 | 서버 설정 오류 (API 키 없음) |
+| 502 | Google API 오류 |
+
+---
+
+### 환경 변수 설정
+
+| 변수 | 기본값 | 설명 |
+|-----|--------|------|
+| GOOGLE_MAPS_API_KEY | (필수) | Google Maps API 키 |
+| GOOGLE_MAP_TYPE | roadmap | 기본 지도 유형 |
+| GOOGLE_TILE_LANGUAGE | ko-KR | 기본 타일 언어 |
+| GOOGLE_TILE_REGION | KR | 기본 타일 지역 |
+| TILE_TIMEOUT_SECONDS | 12 | 타일 요청 타임아웃 (초) |
+| TILE_CACHE_SIZE | 1000 | 타일 캐시 최대 개수 |
+| TILE_CACHE_TTL_SECONDS | 3600 | 타일 캐시 TTL (초) |
+| MAX_ZOOM | 22 | 최대 줌 레벨 |
+| SESSION_FALLBACK_TTL_SECONDS | 600 | 세션 기본 TTL (초) |
+| SESSION_REFRESH_GRACE_SECONDS | 60 | 세션 갱신 여유 시간 (초) |
+| MAX_SESSION_CACHE_SIZE | 128 | 세션 캐시 최대 개수 |
+
+---
+
+### 타일 좌표 계산
+
+위도/경도를 타일 좌표로 변환하는 공식:
+
+```javascript
+function latLngToTile(lat, lng, zoom) {
+    const n = Math.pow(2, zoom);
+    const x = Math.floor((lng + 180) / 360 * n);
+    const latRad = lat * Math.PI / 180;
+    const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
+    return { x, y, z: zoom };
+}
+
+// 예: 서울시청 (37.5665, 126.9780) at zoom 15
+// → { x: 27959, y: 12824, z: 15 }
+```
+
+---
+
+### 클라이언트 연동 예시
+
+**React Native (MapLibre)**
+```javascript
+<MapView
+    styleURL={{
+        version: 8,
+        sources: {
+            'raster-tiles': {
+                type: 'raster',
+                tiles: ['https://your-server.com/maps/tiles/{z}/{x}/{y}.png?lang=ko-KR'],
+                tileSize: 256,
+            },
+        },
+        layers: [{
+            id: 'simple-tiles',
+            type: 'raster',
+            source: 'raster-tiles',
+        }],
+    }}
+/>
+```
+
+**Leaflet.js**
+```javascript
+L.tileLayer('https://your-server.com/maps/tiles/{z}/{x}/{y}.png?lang=ko-KR&mapType=roadmap', {
+    maxZoom: 22,
+    attribution: '© Google Maps'
+}).addTo(map);
+```
 
 ---
 
