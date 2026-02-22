@@ -29,6 +29,7 @@ const OBSTACLE_CONFIG = {
   Stuff: { icon: 'exclamation-triangle', color: '#f59e0b', bgColor: '#fef3c7', isFontAwesome: true },
   Stair: { icon: 'level-up-alt', color: '#3b82f6', bgColor: '#dbeafe', isFontAwesome: true },
   EV: { icon: 'door-open', color: '#10b981', bgColor: '#d1fae5', isFontAwesome: true },
+  Mixed: { icon: 'layer-group', color: '#8b5cf6', bgColor: '#ede9fe', isFontAwesome: true },
 }
 
 function ObstacleGalleryPanel({ styles, obstacles, isLoading, onClose, panelBottomClearance, t }) {

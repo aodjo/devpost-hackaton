@@ -107,7 +107,8 @@
     "types": {
       "Stuff": "장애물",
       "Stair": "계단",
-      "EV": "엘리베이터"
+      "EV": "엘리베이터",
+      "Mixed": "복합"
     },
     "description": "상세 설명",
     "descriptionPlaceholder": "접근성 정보에 대한 설명을 입력하세요",

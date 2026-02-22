@@ -43,6 +43,48 @@ const TILE_QUERY = TILE_REGION
   : `lang=${encodeURIComponent(TILE_LANGUAGE)}`
 const ANDROID_KEYBOARD_EXTRA_OFFSET = 0
 
+// 5m 이내 장애물 클러스터링
+function clusterNearbyObstacles(places, thresholdMeters = 5) {
+  if (!places || places.length === 0) return []
+
+  const latThreshold = thresholdMeters / 111000
+  const lngThreshold = thresholdMeters / 85000
+
+  const clustered = []
+  const used = new Set()
+
+  for (let i = 0; i < places.length; i++) {
+    if (used.has(i)) continue
+
+    const cluster = {
+      latitude: places[i].latitude,
+      longitude: places[i].longitude,
+      type: places[i].type,
+      ids: [...places[i].ids],
+    }
+
+    for (let j = i + 1; j < places.length; j++) {
+      if (used.has(j)) continue
+
+      const latDiff = Math.abs(places[i].latitude - places[j].latitude)
+      const lngDiff = Math.abs(places[i].longitude - places[j].longitude)
+
+      if (latDiff <= latThreshold && lngDiff <= lngThreshold) {
+        cluster.ids.push(...places[j].ids)
+        if (cluster.type !== places[j].type) {
+          cluster.type = 'Mixed'
+        }
+        used.add(j)
+      }
+    }
+
+    used.add(i)
+    clustered.push(cluster)
+  }
+
+  return clustered
+}
+
 function App() {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
@@ -192,7 +234,9 @@ function App() {
         })
         const data = await response.json()
         if (data.places && mounted) {
-          setObstacles(data.places)
+          // 5m 이내 클러스터링
+          const clustered = clusterNearbyObstacles(data.places)
+          setObstacles(clustered)
         }
       } catch {
         // Ignore errors
@@ -361,7 +405,8 @@ function App() {
       const data = await response.json()
       console.log('Obstacles API response:', data)
       if (data.places) {
-        setObstacles(data.places)
+        const clustered = clusterNearbyObstacles(data.places)
+        setObstacles(clustered)
       }
     } catch (error) {
       console.error('Obstacles fetch error:', error)
