@@ -1,7 +1,8 @@
 {
   "nav": {
     "home": "홈",
-    "navigation": "내비게이션",
+    "navigation": "길찾기",
+    "camera": "카메라",
     "transit": "대중교통",
     "profile": "내 정보"
   },

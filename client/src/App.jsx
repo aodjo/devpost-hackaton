@@ -369,29 +369,38 @@ function App() {
     })
   }, [isBottomPanelTab, collapseAnim, panelExpandAnim, panelMinimizeAnim])
 
-  const navItemKeys = ['home', 'navigation', 'transit', 'profile']
-  const activeNavIndex = Math.max(0, navItemKeys.indexOf(activeTab))
-  const navIndicatorWidth =
-    bottomNavWidth > 0
-      ? (bottomNavWidth - NAVBAR_HORIZONTAL_PADDING * 2) / navItemKeys.length
-      : 0
+  const navItems = ['home', 'navigation', 'transit', 'profile']
+  const activeNavIndex = navItems.indexOf(activeTab)
+  // 각 그룹 너비 = (전체 - 카메라버튼영역) / 2, 그룹 내 아이템 = 그룹너비 / 2
+  const navGroupWidth = bottomNavWidth > 0 ? (bottomNavWidth - 80) / 2 : 0
+  const navIndicatorWidth = navGroupWidth > 0 ? (navGroupWidth - 8) / 2 : 0
+  // 카메라 버튼 영역 오프셋 (왼쪽 그룹 끝 ~ 오른쪽 그룹 시작)
+  const cameraAreaOffset = 80
   const bottomNavBottom = insets.bottom + 12
   const panelBottomClearance = bottomNavHeight + bottomNavBottom + 8
   const focusButtonBottom = panelBottomClearance + 24
   const locationErrorBottom = bottomNavHeight + bottomNavBottom + 8
 
   useEffect(() => {
-    if (navIndicatorWidth <= 0) {
+    if (navIndicatorWidth <= 0 || activeNavIndex < 0) {
       return
     }
 
+    // 글로벌 위치 계산: 왼쪽 그룹(0,1)은 그대로, 오른쪽 그룹(2,3)은 카메라 영역 오프셋 추가
+    let targetPosition
+    if (activeNavIndex <= 1) {
+      targetPosition = activeNavIndex * navIndicatorWidth
+    } else {
+      targetPosition = navGroupWidth + cameraAreaOffset + (activeNavIndex - 2) * navIndicatorWidth
+    }
+
     Animated.spring(navIndicatorAnim, {
-      toValue: activeNavIndex * navIndicatorWidth,
+      toValue: targetPosition,
       useNativeDriver: true,
-      speed: 18,
-      bounciness: 0,
+      speed: 14,
+      bounciness: 2,
     }).start()
-  }, [activeNavIndex, navIndicatorWidth, navIndicatorAnim])
+  }, [activeNavIndex, navIndicatorWidth, navIndicatorAnim, navGroupWidth, cameraAreaOffset])
 
   const mapTypeRowAnimatedStyle = {
     opacity: collapseAnim.interpolate({
@@ -583,13 +592,14 @@ function App() {
 
         <BottomNavBar
           styles={styles}
-          navItemKeys={navItemKeys}
           activeTab={activeTab}
           onPressNavItem={handleNavPress}
           bottomNavBottom={bottomNavBottom}
           onLayout={handleBottomNavLayout}
           navIndicatorWidth={navIndicatorWidth}
           navIndicatorAnim={navIndicatorAnim}
+          navGroupWidth={navGroupWidth}
+          cameraAreaOffset={cameraAreaOffset}
         />
       </View>
       </KeyboardAvoidingView>
