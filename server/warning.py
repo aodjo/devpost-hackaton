@@ -40,6 +40,14 @@ class RequestVerifyPlace(BaseModel):
     is_valid: bool
 
 
+class RequestViewport(BaseModel):
+    sw_latitude: float
+    sw_longitude: float
+    ne_latitude: float
+    ne_longitude: float
+    type: PlaceType | None = None
+
+
 def _update_consecutive_days(db: sqlite3.Connection, user_id: int) -> None:
     today = date.today().isoformat()
     yesterday = (date.today() - timedelta(days=1)).isoformat()
@@ -105,6 +113,45 @@ def add_warning_place(
         raise HTTPException(status_code=500, detail="Database operational error")
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to add warning place")
+
+
+@router.post("/viewport")
+def get_places_in_viewport(
+    viewport: RequestViewport,
+    db: sqlite3.Connection = Depends(get_db),
+) -> dict:
+    try:
+        if viewport.type:
+            rows = db.execute(
+                """SELECT id, user_id, name, latitude, longitude, description, type, has_image, verification_count, created_at, updated_at
+                   FROM warning_places
+                   WHERE latitude >= ? AND latitude <= ? AND longitude >= ? AND longitude <= ? AND type = ?""",
+                (viewport.sw_latitude, viewport.ne_latitude, viewport.sw_longitude, viewport.ne_longitude, viewport.type),
+            ).fetchall()
+        else:
+            rows = db.execute(
+                """SELECT id, user_id, name, latitude, longitude, description, type, has_image, verification_count, created_at, updated_at
+                   FROM warning_places
+                   WHERE latitude >= ? AND latitude <= ? AND longitude >= ? AND longitude <= ?""",
+                (viewport.sw_latitude, viewport.ne_latitude, viewport.sw_longitude, viewport.ne_longitude),
+            ).fetchall()
+
+        result_list = [dict(row) for row in rows]
+
+        stats = {
+            "total": len(result_list),
+            "obstacle": sum(1 for r in result_list if r["type"] == "obstacle"),
+            "stairs": sum(1 for r in result_list if r["type"] == "stairs"),
+            "elevator": sum(1 for r in result_list if r["type"] == "elevator"),
+        }
+
+        return {
+            "message": "Places retrieved successfully",
+            "stats": stats,
+            "places": result_list,
+        }
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to get places in viewport")
 
 
 @router.post("/get_place/")

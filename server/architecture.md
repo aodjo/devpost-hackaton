@@ -90,6 +90,61 @@ GET /auth/me
 
 ## 장애물 제보 (Warning)
 
+### 지도 뷰포트 내 접근성 정보 조회
+```
+POST /warning/viewport
+```
+지도에서 보이는 영역(바운딩 박스) 내의 모든 접근성 정보를 조회합니다.
+
+#### Request Body
+```json
+{
+    "sw_latitude": 37.5600,
+    "sw_longitude": 126.9700,
+    "ne_latitude": 37.5700,
+    "ne_longitude": 126.9900,
+    "type": "stairs"
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|-----|------|------|------|
+| sw_latitude | float | O | 남서쪽 위도 |
+| sw_longitude | float | O | 남서쪽 경도 |
+| ne_latitude | float | O | 북동쪽 위도 |
+| ne_longitude | float | O | 북동쪽 경도 |
+| type | string | X | 필터: `obstacle`, `stairs`, `elevator` (없으면 전체) |
+
+#### Response (200 OK)
+```json
+{
+    "message": "Places retrieved successfully",
+    "stats": {
+        "total": 15,
+        "obstacle": 8,
+        "stairs": 4,
+        "elevator": 3
+    },
+    "places": [
+        {
+            "id": 1,
+            "user_id": 1,
+            "name": "지하철역 계단",
+            "latitude": 37.5650,
+            "longitude": 126.9800,
+            "description": "가파른 계단",
+            "type": "stairs",
+            "has_image": 1,
+            "verification_count": 3,
+            "created_at": "2024-01-01 12:00:00",
+            "updated_at": "2024-01-01 12:30:00"
+        }
+    ]
+}
+```
+
+---
+
 ### 장애물 신고
 ```
 POST /warning/add_place
