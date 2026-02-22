@@ -1,7 +1,8 @@
+import os
 import sqlite3
 from typing import Generator
 
-DB_PATH = "database.db"
+DB_PATH = os.getenv("DB_PATH", "app.db")
 
 def init_db() -> None:
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
