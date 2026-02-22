@@ -28,7 +28,7 @@ function ProfilePanelContent({
   t,
   styles,
   loggedIn,
-  username,
+  userData,
   badges,
   onOpenLogin,
   onLogout,
@@ -51,14 +51,18 @@ function ProfilePanelContent({
       {/* 프로필 섹션 */}
       <View style={styles.profileSectionCard}>
         <View style={styles.profileHeader}>
-          <View style={styles.profileAvatar}>
-            <MaterialIcons name="person" size={32} color="#94a3b8" />
-          </View>
+          {loggedIn && userData?.profile_image ? (
+            <Image source={{ uri: userData.profile_image }} style={styles.profileAvatarImage} />
+          ) : (
+            <View style={styles.profileAvatar}>
+              <MaterialIcons name="person" size={32} color="#94a3b8" />
+            </View>
+          )}
           <View style={styles.profileInfo}>
-            {loggedIn ? (
+            {loggedIn && userData ? (
               <>
-                <Text style={styles.profileUsername}>{username}</Text>
-                <Text style={styles.profileEmail}>user@example.com</Text>
+                <Text style={styles.profileUsername}>{userData.username}</Text>
+                <Text style={styles.profileEmail}>{userData.email}</Text>
               </>
             ) : (
               <Text style={styles.profileLoginHint}>{t('profile.loginPrompt')}</Text>
@@ -219,7 +223,7 @@ function MapTabContent({
   // Profile panel
   isProfileTab,
   loggedIn,
-  username,
+  userData,
   badges,
   onOpenLogin,
   onLogout,
@@ -590,7 +594,7 @@ function MapTabContent({
                 t={t}
                 styles={styles}
                 loggedIn={loggedIn}
-                username={username}
+                userData={userData}
                 badges={badges}
                 onOpenLogin={onOpenLogin}
                 onLogout={onLogout}

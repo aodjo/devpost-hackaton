@@ -2,10 +2,13 @@
   "expo": {
     "name": "client",
     "slug": "client",
+    "scheme": "openroute",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "android": {
       "package": "dev.junx.devpost",
       "softwareKeyboardLayoutMode": "resize"
@@ -14,7 +17,11 @@
       "bundleIdentifier": "dev.junx.devpost"
     },
     "extra": {
-      "tileProxyBaseUrl": "http://192.168.219.103:8000"
-    }
+      "tileProxyBaseUrl": "http://192.168.219.103:8000",
+      "apiBaseUrl": "http://192.168.219.103:8000"
+    },
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }

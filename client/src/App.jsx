@@ -1,6 +1,8 @@
 ﻿import { StatusBar } from 'expo-status-bar'
 import Constants from 'expo-constants'
 import * as Location from 'expo-location'
+import * as WebBrowser from 'expo-web-browser'
+import * as AuthSession from 'expo-auth-session'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Animated, Dimensions, Keyboard, KeyboardAvoidingView, Platform, View } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -18,8 +20,12 @@ import {
 } from './constants/appConstants'
 import { styles } from './styles/appStyles'
 
+WebBrowser.maybeCompleteAuthSession()
+
 const TILE_PROXY_BASE_URL =
   Constants.expoConfig?.extra?.tileProxyBaseUrl ?? 'http://10.0.2.2:8000'
+const API_BASE_URL =
+  Constants.expoConfig?.extra?.apiBaseUrl ?? 'http://10.0.2.2:8000'
 
 const DEVICE_LOCALE = Intl.DateTimeFormat().resolvedOptions().locale ?? 'en-US'
 const NORMALIZED_LOCALE = DEVICE_LOCALE.replace('_', '-')
@@ -55,14 +61,9 @@ function App() {
   const [currentHeading, setCurrentHeading] = useState(null)
   const [locationError, setLocationError] = useState('')
   const [dividerCenterY, setDividerCenterY] = useState(null)
-  const [loginModalVisible, setLoginModalVisible] = useState(false)
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
   const [loggedIn, setLoggedIn] = useState(false)
-  const [changePasswordModalVisible, setChangePasswordModalVisible] = useState(false)
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const [userData, setUserData] = useState(null)
+  const [accessToken, setAccessToken] = useState(null)
   const [badgeModalVisible, setBadgeModalVisible] = useState(false)
   const [selectedBadge, setSelectedBadge] = useState(null)
   const [badges] = useState([
@@ -97,11 +98,15 @@ function App() {
 
     const loadLoginData = async () => {
       try {
-        const storedData = await AsyncStorage.getItem('loginData')
+        const storedData = await AsyncStorage.getItem('userData')
+        const storedToken = await AsyncStorage.getItem('accessToken')
         if (storedData && mounted) {
           const parsedData = JSON.parse(storedData)
-          setUsername(parsedData.username)
-          setLoggedIn(parsedData.loggedIn)
+          setUserData(parsedData)
+          setLoggedIn(true)
+        }
+        if (storedToken && mounted) {
+          setAccessToken(storedToken)
         }
       } catch {
         // Ignore persisted login read failures.
@@ -351,51 +356,50 @@ function App() {
     setBottomNavHeight(height)
   }
 
-  const handleOpenLoginModal = () => {
-    setLoginModalVisible(true)
-  }
-
-  const handleCancelLogin = () => {
-    setLoginModalVisible(false)
-    setUsername('')
-    setPassword('')
-  }
-
-  const handleSubmitLogin = async () => {
-    setLoggedIn(true)
-    setLoginModalVisible(false)
+  const handleGoogleLogin = async () => {
     try {
-      await AsyncStorage.setItem('loginData', JSON.stringify({ username, loggedIn: true }))
+      const redirectUri = AuthSession.makeRedirectUri({
+        scheme: 'openroute',
+        path: 'callback',
+      })
+
+      const authUrl = `${API_BASE_URL}/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`
+
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri)
+
+      if (result.type === 'success' && result.url) {
+        const url = new URL(result.url)
+        const params = Object.fromEntries(url.searchParams.entries())
+
+        if (params?.user) {
+          const user = typeof params.user === 'string' ? JSON.parse(params.user) : params.user
+          const token = params.access_token
+
+          setUserData(user)
+          setAccessToken(token)
+          setLoggedIn(true)
+
+          await AsyncStorage.setItem('userData', JSON.stringify(user))
+          if (token) {
+            await AsyncStorage.setItem('accessToken', token)
+          }
+        }
+      }
     } catch {
-      // Ignore persisted login write failures.
+      Alert.alert('Login Error', 'Failed to login with Google. Please try again.')
     }
   }
 
   const handleLogout = async () => {
     setLoggedIn(false)
-    setUsername('')
-    setPassword('')
+    setUserData(null)
+    setAccessToken(null)
     try {
-      await AsyncStorage.removeItem('loginData')
+      await AsyncStorage.removeItem('userData')
+      await AsyncStorage.removeItem('accessToken')
     } catch {
       // Ignore persisted login removal failures.
     }
-  }
-
-  const handleCancelChangePassword = () => {
-    setChangePasswordModalVisible(false)
-    setCurrentPassword('')
-    setNewPassword('')
-    setConfirmPassword('')
-  }
-
-  const handleSubmitChangePassword = () => {
-    if (newPassword === confirmPassword) {
-      handleCancelChangePassword()
-      return
-    }
-
-    Alert.alert(t('profile.error'), t('profile.passwordMismatch'))
   }
 
   const handleSelectBadge = (badge) => {
@@ -462,9 +466,9 @@ function App() {
           locationErrorBottom={locationErrorBottom}
           keyboardInset={androidKeyboardInset}
           loggedIn={loggedIn}
-          username={username}
+          userData={userData}
           badges={badges}
-          onOpenLogin={handleOpenLoginModal}
+          onOpenLogin={handleGoogleLogin}
           onLogout={handleLogout}
           onSelectBadge={handleSelectBadge}
         />
@@ -486,24 +490,8 @@ function App() {
 
       <AppModals
         styles={styles}
-        loginModalVisible={loginModalVisible}
-        changePasswordModalVisible={changePasswordModalVisible}
         badgeModalVisible={badgeModalVisible}
-        username={username}
-        setUsername={setUsername}
-        password={password}
-        setPassword={setPassword}
-        currentPassword={currentPassword}
-        setCurrentPassword={setCurrentPassword}
-        newPassword={newPassword}
-        setNewPassword={setNewPassword}
-        confirmPassword={confirmPassword}
-        setConfirmPassword={setConfirmPassword}
         selectedBadge={selectedBadge}
-        onCancelLogin={handleCancelLogin}
-        onSubmitLogin={handleSubmitLogin}
-        onCancelChangePassword={handleCancelChangePassword}
-        onSubmitChangePassword={handleSubmitChangePassword}
         onCloseBadgeModal={handleCloseBadgeModal}
       />
     </SafeAreaView>
