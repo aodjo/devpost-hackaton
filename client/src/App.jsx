@@ -43,6 +43,48 @@ const TILE_QUERY = TILE_REGION
   : `lang=${encodeURIComponent(TILE_LANGUAGE)}`
 const ANDROID_KEYBOARD_EXTRA_OFFSET = 0
 
+// 5m 이내 장애물 클러스터링
+function clusterNearbyObstacles(places, thresholdMeters = 5) {
+  if (!places || places.length === 0) return []
+
+  const latThreshold = thresholdMeters / 111000
+  const lngThreshold = thresholdMeters / 85000
+
+  const clustered = []
+  const used = new Set()
+
+  for (let i = 0; i < places.length; i++) {
+    if (used.has(i)) continue
+
+    const cluster = {
+      latitude: places[i].latitude,
+      longitude: places[i].longitude,
+      type: places[i].type,
+      ids: [...places[i].ids],
+    }
+
+    for (let j = i + 1; j < places.length; j++) {
+      if (used.has(j)) continue
+
+      const latDiff = Math.abs(places[i].latitude - places[j].latitude)
+      const lngDiff = Math.abs(places[i].longitude - places[j].longitude)
+
+      if (latDiff <= latThreshold && lngDiff <= lngThreshold) {
+        cluster.ids.push(...places[j].ids)
+        if (cluster.type !== places[j].type) {
+          cluster.type = 'Mixed'
+        }
+        used.add(j)
+      }
+    }
+
+    used.add(i)
+    clustered.push(cluster)
+  }
+
+  return clustered
+}
+
 function App() {
   const { t } = useTranslation()
   const insets = useSafeAreaInsets()
@@ -88,6 +130,11 @@ function App() {
   const [bottomNavHeight, setBottomNavHeight] = useState(0)
   const [keyboardInset, setKeyboardInset] = useState(0)
   const [navIndicatorAnim] = useState(() => new Animated.Value(0))
+  const [obstacles, setObstacles] = useState([])
+  const [mapRegion, setMapRegion] = useState(null)
+  const [selectedObstacle, setSelectedObstacle] = useState(null)
+  const [isLoadingObstacle, setIsLoadingObstacle] = useState(false)
+  const obstaclesFetchTimeoutRef = useRef(null)
 
   const tileUrlTemplate = useMemo(() => {
     const normalizedBase = `${TILE_PROXY_BASE_URL}`.replace(/\/+$/, '')
@@ -202,6 +249,31 @@ function App() {
       }
     })
 
+    // 초기 장애물 로드
+    const loadInitialObstacles = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/warning/viewport`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sw_latitude: INITIAL_REGION.latitude - INITIAL_REGION.latitudeDelta / 2,
+            sw_longitude: INITIAL_REGION.longitude - INITIAL_REGION.longitudeDelta / 2,
+            ne_latitude: INITIAL_REGION.latitude + INITIAL_REGION.latitudeDelta / 2,
+            ne_longitude: INITIAL_REGION.longitude + INITIAL_REGION.longitudeDelta / 2,
+          }),
+        })
+        const data = await response.json()
+        if (data.places && mounted) {
+          // 5m 이내 클러스터링
+          const clustered = clusterNearbyObstacles(data.places)
+          setObstacles(clustered)
+        }
+      } catch {
+        // Ignore errors
+      }
+    }
+    loadInitialObstacles()
+
     return () => {
       mounted = false
       if (watchSubscription) {
@@ -212,6 +284,9 @@ function App() {
       }
       if (autocompleteTimeoutRef.current) {
         clearTimeout(autocompleteTimeoutRef.current)
+      }
+      if (obstaclesFetchTimeoutRef.current) {
+        clearTimeout(obstaclesFetchTimeoutRef.current)
       }
     }
   }, [])
@@ -517,6 +592,105 @@ function App() {
     }
   }
 
+  const fetchObstacles = useCallback(async (region) => {
+    if (!region) return
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/warning/viewport`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sw_latitude: region.latitude - region.latitudeDelta / 2,
+          sw_longitude: region.longitude - region.longitudeDelta / 2,
+          ne_latitude: region.latitude + region.latitudeDelta / 2,
+          ne_longitude: region.longitude + region.longitudeDelta / 2,
+        }),
+      })
+
+      const data = await response.json()
+      console.log('Obstacles API response:', data)
+      if (data.places) {
+        const clustered = clusterNearbyObstacles(data.places)
+        setObstacles(clustered)
+      }
+    } catch (error) {
+      console.error('Obstacles fetch error:', error)
+    }
+  }, [])
+
+  const handleRegionChangeComplete = useCallback((region) => {
+    setMapRegion(region)
+
+    if (obstaclesFetchTimeoutRef.current) {
+      clearTimeout(obstaclesFetchTimeoutRef.current)
+    }
+
+    obstaclesFetchTimeoutRef.current = setTimeout(() => {
+      fetchObstacles(region)
+    }, 500)
+  }, [fetchObstacles])
+
+  const handleObstaclePress = useCallback(async (obstacle) => {
+    if (!obstacle.ids || obstacle.ids.length === 0) return
+
+    setIsLoadingObstacle(true)
+    try {
+      // 모든 장애물 정보 가져오기
+      const obstacleDetails = await Promise.all(
+        obstacle.ids.map(async (placeId) => {
+          try {
+            const response = await fetch(`${API_BASE_URL}/warning/get_place/${placeId}`)
+            const data = await response.json()
+
+            if (data.place) {
+              let uploaderName = null
+              let uploaderImage = null
+
+              // 업로더 정보 가져오기
+              if (data.place.user_id) {
+                try {
+                  const userResponse = await fetch(`${API_BASE_URL}/badge/user/${data.place.user_id}`)
+                  const userData = await userResponse.json()
+                  if (userData.user) {
+                    uploaderName = userData.user.username
+                    uploaderImage = userData.user.profile_image
+                  }
+                } catch {
+                  // Ignore user fetch errors
+                }
+              }
+
+              return {
+                ...data.place,
+                imageUrl: data.place.has_image ? `${API_BASE_URL}/warning/get_place_img/${placeId}` : null,
+                uploaderName,
+                uploaderImage,
+              }
+            }
+            return null
+          } catch {
+            return null
+          }
+        })
+      )
+
+      const validObstacles = obstacleDetails.filter(Boolean)
+      if (validObstacles.length > 0) {
+        setSelectedObstacle(validObstacles)
+      }
+    } catch {
+      // Ignore errors
+    } finally {
+      setIsLoadingObstacle(false)
+    }
+  }, [])
+
+  const handleCloseObstacle = useCallback(() => {
+    setSelectedObstacle(null)
+  }, [])
+
   useEffect(() => {
     if (activeTab === 'navigation') {
       originRef.current?.focus()
@@ -758,6 +932,12 @@ function App() {
           currentHeading={currentHeading}
           isBottomPanelTab={isBottomPanelTab}
           onBackgroundPress={handleBackgroundPress}
+          obstacles={obstacles}
+          onRegionChangeComplete={handleRegionChangeComplete}
+          onObstaclePress={handleObstaclePress}
+          selectedObstacle={selectedObstacle}
+          isLoadingObstacle={isLoadingObstacle}
+          onCloseObstacle={handleCloseObstacle}
           isHomeTab={isHomeTab}
           placeQuery={placeQuery}
           onPlaceQueryChange={handlePlaceQueryChange}

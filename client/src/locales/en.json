@@ -114,7 +114,8 @@
     "types": {
       "Stuff": "Obstacle",
       "Stair": "Stairs",
-      "EV": "Elevator"
+      "EV": "Elevator",
+      "Mixed": "Mixed"
     },
     "description": "Description",
     "descriptionPlaceholder": "Enter description",

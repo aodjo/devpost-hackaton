@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import {
+  ActivityIndicator,
   Animated,
   Image,
   Linking,
+  Modal,
   PanResponder,
   Platform,
   Pressable,
@@ -51,6 +53,136 @@ function decodePolyline(encoded) {
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0'
 const GITHUB_URL = 'https://github.com/aodjo/devpost-hackaton'
 const GOOGLE_ICON_URI = 'https://img.icons8.com/?size=100&id=17949&format=png&color=000000'
+
+const OBSTACLE_CONFIG = {
+  Stuff: { icon: 'exclamation-triangle', color: '#f59e0b', bgColor: '#fef3c7', isFontAwesome: true },
+  Stair: { icon: 'level-up-alt', color: '#3b82f6', bgColor: '#dbeafe', isFontAwesome: true },
+  EV: { icon: 'door-open', color: '#10b981', bgColor: '#d1fae5', isFontAwesome: true },
+  Mixed: { icon: 'layer-group', color: '#8b5cf6', bgColor: '#ede9fe', isFontAwesome: true },
+}
+
+function ObstacleGalleryPanel({ styles, obstacles, isLoading, onClose, panelBottomClearance, t }) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [fullscreenImage, setFullscreenImage] = useState(null)
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions()
+  const cardWidth = screenWidth - 24 - 32 // panel padding
+
+  const handleScroll = (event) => {
+    const offsetX = event.nativeEvent.contentOffset.x
+    const index = Math.round(offsetX / cardWidth)
+    setCurrentIndex(index)
+  }
+
+  if (isLoading) {
+    return (
+      <View style={[styles.obstacleInfoPanel, { bottom: panelBottomClearance }]}>
+        <View style={styles.obstacleInfoLoading}>
+          <ActivityIndicator size="small" color="#3b82f6" />
+        </View>
+      </View>
+    )
+  }
+
+  return (
+    <>
+    <Modal
+      visible={!!fullscreenImage}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setFullscreenImage(null)}
+    >
+      <Pressable
+        style={styles.fullscreenImageOverlay}
+        onPress={() => setFullscreenImage(null)}
+      >
+        <Image
+          source={{ uri: fullscreenImage }}
+          style={styles.fullscreenImage}
+          resizeMode="contain"
+        />
+        <Pressable
+          style={styles.fullscreenCloseButton}
+          onPress={() => setFullscreenImage(null)}
+        >
+          <MaterialIcons name="close" size={28} color="#fff" />
+        </Pressable>
+      </Pressable>
+    </Modal>
+    <View style={[styles.obstacleInfoPanel, { bottom: panelBottomClearance }]}>
+      <View style={styles.obstacleInfoPanelHeader}>
+        <View style={styles.obstacleInfoPaginationContainer}>
+          {obstacles.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.obstacleInfoPaginationDot,
+                index === currentIndex && styles.obstacleInfoPaginationDotActive,
+              ]}
+            />
+          ))}
+        </View>
+        <Pressable style={styles.obstacleInfoCloseButton} onPress={onClose}>
+          <MaterialIcons name="close" size={20} color="#64748b" />
+        </Pressable>
+      </View>
+
+      <ScrollView
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        decelerationRate="fast"
+        snapToInterval={cardWidth}
+        snapToAlignment="start"
+        contentContainerStyle={{ paddingRight: 0 }}
+      >
+        {obstacles.map((obs) => {
+          const config = OBSTACLE_CONFIG[obs.type] || OBSTACLE_CONFIG.Stuff
+          return (
+            <ScrollView
+              key={obs.id}
+              style={[styles.obstacleInfoCard, { width: cardWidth }]}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
+              <View style={[styles.obstacleInfoTypeBadge, { backgroundColor: config.color }]}>
+                <FontAwesome5 name={config.icon} size={12} color="#fff" solid />
+                <Text style={styles.obstacleInfoTypeBadgeText}>{t(`report.types.${obs.type}`)}</Text>
+              </View>
+
+              <Text style={styles.obstacleInfoName}>{obs.name}</Text>
+
+              {obs.imageUrl ? (
+                <Pressable onPress={() => setFullscreenImage(obs.imageUrl)}>
+                  <Image source={{ uri: obs.imageUrl }} style={styles.obstacleInfoImage} />
+                </Pressable>
+              ) : null}
+
+              {obs.description ? (
+                <Text style={styles.obstacleInfoDescription}>{obs.description}</Text>
+              ) : null}
+
+              {obs.uploaderName ? (
+                <View style={styles.obstacleInfoUploader}>
+                  {obs.uploaderImage ? (
+                    <Image source={{ uri: obs.uploaderImage }} style={styles.obstacleInfoUploaderAvatar} />
+                  ) : (
+                    <View style={styles.obstacleInfoUploaderAvatarPlaceholder}>
+                      <MaterialIcons name="person" size={14} color="#94a3b8" />
+                    </View>
+                  )}
+                  <Text style={styles.obstacleInfoUploaderText}>{obs.uploaderName}</Text>
+                </View>
+              ) : null}
+            </ScrollView>
+          )
+        })}
+      </ScrollView>
+    </View>
+    </>
+  )
+}
 
 function ProfilePanelContent({
   t,
@@ -218,6 +350,12 @@ function MapTabContent({
   currentHeading,
   isBottomPanelTab,
   onBackgroundPress,
+  obstacles = [],
+  onRegionChangeComplete,
+  onObstaclePress,
+  selectedObstacle,
+  isLoadingObstacle,
+  onCloseObstacle,
 
   // Home search
   isHomeTab,
@@ -432,10 +570,12 @@ function MapTabContent({
         mapType={Platform.OS === 'android' ? 'none' : 'standard'}
         initialRegion={initialRegion}
         onPress={isBottomPanelTab && !isPanelExpanded ? onBackgroundPress : undefined}
+        onRegionChangeComplete={onRegionChangeComplete}
       >
         <UrlTile urlTemplate={tileUrlTemplate} maximumZ={22} shouldReplaceMapContent />
         {currentLocation ? (
           <Marker
+            key={`location-${currentLocation.latitude}-${currentLocation.longitude}`}
             coordinate={currentLocation}
             tracksViewChanges={true}
             anchor={{ x: 0.5, y: 0.5 }}
@@ -498,10 +638,10 @@ function MapTabContent({
           </Marker>
         ) : null}
 
-        {/* 장애물 마커 */}
+        {/* 경로상 장애물 마커 */}
         {routeObstacles.map((obstacle) => (
           <Marker
-            key={`obstacle-${obstacle.id}`}
+            key={`route-obstacle-${obstacle.id}`}
             coordinate={{
               latitude: obstacle.latitude,
               longitude: obstacle.longitude,
@@ -509,7 +649,7 @@ function MapTabContent({
             title={obstacle.name}
             description={obstacle.description}
           >
-            <View style={styles.obstacleMarker}>
+            <View style={styles.routeObstacleMarker}>
               <MaterialIcons
                 name={obstacle.type === 'Stair' ? 'stairs' : obstacle.type === 'EV' ? 'elevator' : 'warning'}
                 size={20}
@@ -518,6 +658,32 @@ function MapTabContent({
             </View>
           </Marker>
         ))}
+
+        {/* 지도 장애물 마커 */}
+        {obstacles.map((obstacle) => {
+          const config = OBSTACLE_CONFIG[obstacle.type] || OBSTACLE_CONFIG.Stuff
+          return (
+            <Marker
+              key={`${obstacle.type}-${obstacle.latitude}-${obstacle.longitude}`}
+              coordinate={{
+                latitude: obstacle.latitude,
+                longitude: obstacle.longitude,
+              }}
+              anchor={{ x: 0.5, y: 0.5 }}
+              tracksViewChanges={true}
+              onPress={() => onObstaclePress?.(obstacle)}
+            >
+              <View style={[styles.obstacleMarker, { backgroundColor: config.bgColor, borderColor: config.color }]}>
+                <FontAwesome5 name={config.icon} size={14} color={config.color} solid />
+                {obstacle.ids && obstacle.ids.length > 1 ? (
+                  <View style={[styles.obstacleMarkerBadge, { backgroundColor: config.color }]}>
+                    <Text style={styles.obstacleMarkerBadgeText}>{obstacle.ids.length}</Text>
+                  </View>
+                ) : null}
+              </View>
+            </Marker>
+          )
+        })}
       </MapView>
 
       {/* Top overlay: home search + map type switch */}
@@ -930,11 +1096,23 @@ function MapTabContent({
         </View>
       ) : null}
 
+      {/* Obstacle detail panel */}
+      {selectedObstacle && Array.isArray(selectedObstacle) && selectedObstacle.length > 0 && isHomeTab ? (
+        <ObstacleGalleryPanel
+          styles={styles}
+          obstacles={selectedObstacle}
+          isLoading={isLoadingObstacle}
+          onClose={onCloseObstacle}
+          panelBottomClearance={panelBottomClearance}
+          t={t}
+        />
+      ) : null}
+
       {/* Floating "focus my location" button */}
       <Pressable
         style={[
           styles.focusButton,
-          { bottom: selectedPlace && isHomeTab ? panelBottomClearance + 180 : focusButtonBottom },
+          { bottom: (selectedPlace || selectedObstacle) && isHomeTab ? panelBottomClearance + 180 : focusButtonBottom },
         ]}
         onPress={onFocusMyLocation}
         accessibilityRole="button"
