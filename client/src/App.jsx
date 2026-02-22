@@ -1,12 +1,13 @@
-import { StatusBar } from 'expo-status-bar'
+﻿import { StatusBar } from 'expo-status-bar'
 import Constants from 'expo-constants'
 import * as Location from 'expo-location'
 import { MaterialIcons } from '@expo/vector-icons'
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Platform, Pressable, StyleSheet, Text, TextInput, View, Alert, Animated, Modal, Image } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import MapView, { Marker, UrlTile } from 'react-native-maps'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const TILE_PROXY_BASE_URL =
   Constants.expoConfig?.extra?.tileProxyBaseUrl ?? 'http://10.0.2.2:8000'
@@ -36,9 +37,18 @@ const LABELS = {
   subway: '\uC9C0\uD558\ucca0',
   originPlaceholder: '\uCD9C\uBC1C\uC9C0 \uC785\uB825',
   destinationPlaceholder: '\uBAA9\uC801\uC9C0 \uC785\uB825',
-  permissionRequired: '\uC704\uCE58 \uAD8C\uD55C\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.',
-  locationLoadFailed: '\uC704\uCE58 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.',
+  search: '\uAC80\uC0C9',
+  permissionRequired: '\uC704\uCE58 \uAD8C\uD55C \uD544\uC694',
+  locationLoadFailed: '\uC704\uCE58 \uBD88\uB7EC\uC624\uAE30 \uC2E4\uD328',
   focusMyLocation: '\uB0B4 \uC704\uCE58\uB85C \uD3EC\uCEE4\uC2A4',
+  navigationPanelTitle: '\uCD94\uCC9C \uACBD\uB85C',
+  eta: '\uC608\uC0C1 \uB3C4\uCC29',
+  duration: '\uC18C\uC694',
+  distance: '\uAC70\uB9AC',
+  startGuidance: '\uC548\uB0B4 \uC2DC\uC791',
+  currentLocation: '\uD604\uC7AC \uC704\uCE58',
+  setDestination: '\uBAA9\uC801\uC9C0 \uC124\uC815',
+  routeHint: '\uCD9C\uBC1C\uC9C0\uC640 \uBAA9\uC801\uC9C0\uB97C \uC785\uB825\uD558\uBA74 \uACBD\uB85C\uAC00 \uD45C\uC2DC\uB429\uB2C8\uB2E4.',
 }
 
 const NAV_ITEMS = [LABELS.home, LABELS.navigation, LABELS.transit, LABELS.profile]
@@ -49,11 +59,22 @@ const INITIAL_REGION = {
   latitudeDelta: 0.05,
   longitudeDelta: 0.05,
 }
+const SEARCH_BUTTON_HEIGHT = 34
+const NAVBAR_RADIUS = 14
+const NAVBAR_VERTICAL_PADDING = 8
+const NAVBAR_HORIZONTAL_PADDING = 6
+const NAVIGATION_STEPS = [
+  { id: 'step-1', icon: 'trip-origin', text: '\uCD9C\uBC1C \uD6C4 300m \uC9C1\uC9C4' },
+  { id: 'step-2', icon: 'turn-right', text: '\uC0BC\uC77C\uB300\uB85C\uC5D0\uC11C \uC6B0\uD68C\uC804' },
+  { id: 'step-3', icon: 'straight', text: '\uD558\uB2E8 \uB8E8\uD2B8\uB85C 1.8km \uC774\uB3D9' },
+  { id: 'step-4', icon: 'flag', text: '\uBAA9\uC801\uC9C0 \uB3C4\uCC29' },
+]
 
 function App() {
+  const insets = useSafeAreaInsets()
   const mapRef = useRef(null)
   const originRef = useRef(null)
-  const collapseAnim = useRef(new Animated.Value(0)).current
+  const [collapseAnim] = useState(() => new Animated.Value(0))
   const [mapType, setMapType] = useState('roadmap')
   const [activeTab, setActiveTab] = useState(LABELS.home)
   const [transitType, setTransitType] = useState('bus')
@@ -74,6 +95,10 @@ function App() {
   const [badges] = useState([
     { id: 'test', name: 'test', image: { uri: '/vite.svg' }, description: '테스트 배지 (Vite SVG)' },
   ])
+  const [dividerCenterY, setDividerCenterY] = useState(null)
+  const [bottomNavWidth, setBottomNavWidth] = useState(0)
+  const [bottomNavHeight, setBottomNavHeight] = useState(0)
+  const [navIndicatorAnim] = useState(() => new Animated.Value(0))
 
   const transitRoutes = [
     {
@@ -122,6 +147,18 @@ function App() {
     const normalizedBase = `${TILE_PROXY_BASE_URL}`.replace(/\/+$/, '')
     return `${normalizedBase}/maps/tiles/{z}/{x}/{y}.png?${TILE_QUERY}&mapType=${encodeURIComponent(mapType)}`
   }, [mapType])
+
+  const navigationSummary = useMemo(
+    () => ({
+      from: originInput.trim(),
+      to: destinationInput.trim(),
+      eta: '15:42',
+      duration: '24\ubd84',
+      distance: '8.4km',
+    }),
+    [originInput, destinationInput],
+  )
+  const hasNavigationInputs = navigationSummary.from.length > 0 && navigationSummary.to.length > 0
 
   useEffect(() => {
     let watchSubscription
@@ -210,6 +247,12 @@ function App() {
     )
   }
 
+  const handleSearch = () => {
+    if (!originInput && !destinationInput) {
+      return
+    }
+  }
+
   useEffect(() => {
     if (activeTab === LABELS.navigation) {
       originRef.current?.focus()
@@ -218,13 +261,47 @@ function App() {
     }
   }, [activeTab])
 
+  const handleNavPress = (item) => {
+    setActiveTab(item)
+    if (item === LABELS.home || item === LABELS.navigation) {
+      setMapType('roadmap')
+    }
+  }
+
+  const isTransitTab = activeTab === LABELS.transit
+  const isNavigationTab = activeTab === LABELS.navigation
+  const isBottomPanelTab = isTransitTab || isNavigationTab
+
   useEffect(() => {
     Animated.timing(collapseAnim, {
-      toValue: activeTab === LABELS.transit ? 1 : 0,
+      toValue: isBottomPanelTab ? 1 : 0,
       duration: 300,
       useNativeDriver: false,
     }).start()
-  }, [activeTab, collapseAnim])
+  }, [isBottomPanelTab, collapseAnim])
+
+  const activeNavIndex = Math.max(0, NAV_ITEMS.indexOf(activeTab))
+  const navIndicatorWidth =
+    bottomNavWidth > 0
+      ? (bottomNavWidth - NAVBAR_HORIZONTAL_PADDING * 2) / NAV_ITEMS.length
+      : 0
+  const bottomNavBottom = insets.bottom + 12
+  const panelBottomClearance = bottomNavHeight + bottomNavBottom + 8
+  const focusButtonBottom = panelBottomClearance + 24
+  const locationErrorBottom = bottomNavHeight + bottomNavBottom + 8
+
+  useEffect(() => {
+    if (navIndicatorWidth <= 0) {
+      return
+    }
+
+    Animated.spring(navIndicatorAnim, {
+      toValue: activeNavIndex * navIndicatorWidth,
+      useNativeDriver: true,
+      speed: 18,
+      bounciness: 0,
+    }).start()
+  }, [activeNavIndex, navIndicatorWidth, navIndicatorAnim])
 
   const mapTypeRowAnimatedStyle = {
     opacity: collapseAnim.interpolate({
@@ -252,7 +329,6 @@ function App() {
             initialRegion={INITIAL_REGION}
           >
             <UrlTile urlTemplate={tileUrlTemplate} maximumZ={22} shouldReplaceMapContent />
-
             {currentLocation ? (
               <Marker coordinate={currentLocation} tracksViewChanges={false}>
                 <View style={styles.locationDotOuter}>
@@ -263,9 +339,10 @@ function App() {
           </MapView>
         )}
 
-          {activeTab !== LABELS.profile && (
-            <>
-              <View style={styles.topPanel}>
+        {activeTab !== LABELS.profile ? (
+          <>
+            <View style={styles.topPanel}>
+              {isNavigationTab ? null : (
                 <View style={styles.inputCard}>
                   <TextInput
                     ref={originRef}
@@ -275,7 +352,13 @@ function App() {
                     placeholder={LABELS.originPlaceholder}
                     placeholderTextColor="#94a3b8"
                   />
-                  <View style={styles.inputDivider} />
+                  <View
+                    style={styles.inputDivider}
+                    onLayout={(event) => {
+                      const { y, height } = event.nativeEvent.layout
+                      setDividerCenterY(y + height / 2)
+                    }}
+                  />
                   <TextInput
                     style={styles.input}
                     value={destinationInput}
@@ -283,69 +366,79 @@ function App() {
                     placeholder={LABELS.destinationPlaceholder}
                     placeholderTextColor="#94a3b8"
                   />
+                  <Pressable
+                    style={[
+                      styles.searchButton,
+                      dividerCenterY == null
+                        ? styles.searchButtonFallback
+                        : { top: dividerCenterY - SEARCH_BUTTON_HEIGHT / 2 },
+                    ]}
+                    onPress={handleSearch}
+                    accessibilityRole="button"
+                    accessibilityLabel={LABELS.search}
+                  >
+                    <MaterialIcons name="search" size={18} color="#f8fafc" />
+                    <Text style={styles.searchButtonText}>{LABELS.search}</Text>
+                  </Pressable>
                 </View>
-  
-                <Animated.View style={[styles.mapTypeRow, mapTypeRowAnimatedStyle]}>
-                  <Pressable
-                    style={[
-                      styles.mapTypeButton,
-                      mapType === 'roadmap' && styles.mapTypeButtonActive,
-                    ]}
-                    onPress={() => setMapType('roadmap')}
-                  >
-                    <Text
-                      style={[
-                        styles.mapTypeButtonText,
-                        mapType === 'roadmap' && styles.mapTypeButtonTextActive,
-                      ]}
-                    >
-                      {LABELS.road}
-                    </Text>
-                  </Pressable>
-  
-                  <Pressable
-                    style={[
-                      styles.mapTypeButton,
-                      mapType === 'satellite' && styles.mapTypeButtonActive,
-                    ]}
-                    onPress={() => setMapType('satellite')}
-                  >
-                    <Text
-                      style={[
-                        styles.mapTypeButtonText,
-                        mapType === 'satellite' && styles.mapTypeButtonTextActive,
-                      ]}
-                    >
-                      {LABELS.satellite}
-                    </Text>
-                  </Pressable>
-                </Animated.View>
-              </View>
-  
-              {activeTab === LABELS.transit && (
-                <Animated.View
-                  style={[
-                    styles.collapsiblePanel,
-                    {
-                      transform: [
-                        {
-                          translateY: collapseAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [600, 50],
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                  pointerEvents={activeTab === LABELS.transit ? 'auto' : 'none'}
+              )}
+
+              <Animated.View style={[styles.mapTypeRow, mapTypeRowAnimatedStyle]}>
+                <Pressable
+                  style={[styles.mapTypeButton, mapType === 'roadmap' && styles.mapTypeButtonActive]}
+                  onPress={() => setMapType('roadmap')}
                 >
-                  <View style={styles.collapsibleContent}>
+                  <Text
+                    style={[
+                      styles.mapTypeButtonText,
+                      mapType === 'roadmap' && styles.mapTypeButtonTextActive,
+                    ]}
+                  >
+                    {LABELS.road}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={[
+                    styles.mapTypeButton,
+                    mapType === 'satellite' && styles.mapTypeButtonActive,
+                  ]}
+                  onPress={() => setMapType('satellite')}
+                >
+                  <Text
+                    style={[
+                      styles.mapTypeButtonText,
+                      mapType === 'satellite' && styles.mapTypeButtonTextActive,
+                    ]}
+                  >
+                    {LABELS.satellite}
+                  </Text>
+                </Pressable>
+              </Animated.View>
+            </View>
+
+            <Animated.View
+              style={[
+                styles.collapsiblePanel,
+                {
+                  transform: [
+                    {
+                      translateY: collapseAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [600, 50],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+              pointerEvents={isBottomPanelTab ? 'auto' : 'none'}
+            >
+              <View style={[styles.collapsibleContent, { paddingBottom: panelBottomClearance }]}>
+                {isTransitTab ? (
+                  <>
                     <View style={styles.transitButtonRow}>
                       <Pressable
-                        style={[
-                          styles.mapTypeButton,
-                          transitType === 'bus' && styles.mapTypeButtonActive,
-                        ]}
+                        style={[styles.mapTypeButton, transitType === 'bus' && styles.mapTypeButtonActive]}
                         onPress={() => setTransitType('bus')}
                       >
                         <Text
@@ -357,7 +450,6 @@ function App() {
                           {LABELS.bus}
                         </Text>
                       </Pressable>
-  
                       <Pressable
                         style={[
                           styles.mapTypeButton,
@@ -375,7 +467,7 @@ function App() {
                         </Text>
                       </Pressable>
                     </View>
-  
+
                     <View style={styles.transitCardsContainer}>
                       {transitRoutes
                         .filter((route) => route.type === transitType)
@@ -398,68 +490,165 @@ function App() {
                           </View>
                         ))}
                     </View>
-                  </View>
-                </Animated.View>
-              )}
-  
-              <Pressable
-                style={styles.focusButton}
-                onPress={focusMyLocation}
-                accessibilityRole="button"
-                accessibilityLabel={LABELS.focusMyLocation}
-              >
-                <MaterialIcons name="gps-fixed" size={22} color="#f8fafc" />
-              </Pressable>
-  
-              {locationError ? <Text style={styles.locationError}>{locationError}</Text> : null}
-            </>
-          )}
+                  </>
+                ) : null}
 
-          {activeTab === LABELS.profile && (
-            <View style={styles.profileContainer}>
+                {isNavigationTab ? (
+                  <View style={styles.navigationPanel}>
+                    <View style={styles.navigationInputCard}>
+                      <TextInput
+                        ref={originRef}
+                        style={styles.input}
+                        value={originInput}
+                        onChangeText={setOriginInput}
+                        placeholder={LABELS.originPlaceholder}
+                        placeholderTextColor="#94a3b8"
+                      />
+                      <View
+                        style={styles.inputDivider}
+                        onLayout={(event) => {
+                          const { y, height } = event.nativeEvent.layout
+                          setDividerCenterY(y + height / 2)
+                        }}
+                      />
+                      <TextInput
+                        style={styles.input}
+                        value={destinationInput}
+                        onChangeText={setDestinationInput}
+                        placeholder={LABELS.destinationPlaceholder}
+                        placeholderTextColor="#94a3b8"
+                      />
+                      <Pressable
+                        style={[
+                          styles.searchButton,
+                          dividerCenterY == null
+                            ? styles.searchButtonFallback
+                            : { top: dividerCenterY - SEARCH_BUTTON_HEIGHT / 2 },
+                        ]}
+                        onPress={handleSearch}
+                        accessibilityRole="button"
+                        accessibilityLabel={LABELS.search}
+                      >
+                        <MaterialIcons name="search" size={18} color="#f8fafc" />
+                        <Text style={styles.searchButtonText}>{LABELS.search}</Text>
+                      </Pressable>
+                    </View>
+
+                    {hasNavigationInputs ? (
+                      <>
+                        <View style={styles.navigationHeaderRow}>
+                          <Text style={styles.navigationPanelTitle}>{LABELS.navigationPanelTitle}</Text>
+                          <View style={styles.navigationDistancePill}>
+                            <Text style={styles.navigationDistancePillText}>
+                              {LABELS.distance} {navigationSummary.distance}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.navigationMetaRow}>
+                          <View style={styles.navigationMetaItem}>
+                            <Text style={styles.navigationMetaLabel}>{LABELS.eta}</Text>
+                            <Text style={styles.navigationMetaValue}>{navigationSummary.eta}</Text>
+                          </View>
+                          <View style={styles.navigationMetaDivider} />
+                          <View style={styles.navigationMetaItem}>
+                            <Text style={styles.navigationMetaLabel}>{LABELS.duration}</Text>
+                            <Text style={styles.navigationMetaValue}>{navigationSummary.duration}</Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.navigationRouteCard}>
+                          <Text style={styles.navigationRouteFrom}>{navigationSummary.from}</Text>
+                          <View style={styles.navigationRouteLine} />
+                          <Text style={styles.navigationRouteTo}>{navigationSummary.to}</Text>
+                        </View>
+
+                        <View style={styles.navigationSteps}>
+                          {NAVIGATION_STEPS.map((step) => (
+                            <View key={step.id} style={styles.navigationStepRow}>
+                              <MaterialIcons name={step.icon} size={17} color="#334155" />
+                              <Text style={styles.navigationStepText}>{step.text}</Text>
+                            </View>
+                          ))}
+                        </View>
+
+                        <Pressable style={styles.navigationStartButton}>
+                          <MaterialIcons name="navigation" size={18} color="#f8fafc" />
+                          <Text style={styles.navigationStartButtonText}>{LABELS.startGuidance}</Text>
+                        </Pressable>
+                      </>
+                    ) : (
+                      <View style={styles.navigationHintCard}>
+                        <View style={styles.navigationHintContent}>
+                          <FontAwesome5 name="route" size={44} color="#334155" />
+                          <Text style={styles.navigationHintText}>{LABELS.routeHint}</Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                ) : null}
+              </View>
+            </Animated.View>
+
+            <Pressable
+              style={[styles.focusButton, { bottom: focusButtonBottom }]}
+              onPress={focusMyLocation}
+              accessibilityRole="button"
+              accessibilityLabel={LABELS.focusMyLocation}
+            >
+              <MaterialIcons name="gps-fixed" size={22} color="#f8fafc" />
+            </Pressable>
+
+            {locationError ? (
+              <Text style={[styles.locationError, { bottom: locationErrorBottom }]}>{locationError}</Text>
+            ) : null}
+          </>
+        ) : (
+          <View style={styles.profileContainer}>
+            <View style={styles.profileScrollContent}>
               {!loggedIn ? (
-                <>
+                <View style={styles.profileCard}>
                   <Text style={styles.profileText}>로그인해서 배지 얻기</Text>
-                  <Pressable 
-                    style={styles.loginButton}
-                    onPress={() => setLoginModalVisible(true)}
-                  >
+                  <Pressable style={styles.loginButton} onPress={() => setLoginModalVisible(true)}>
                     <Text style={styles.loginButtonText}>로그인</Text>
                   </Pressable>
-                </>
+                </View>
               ) : (
-                <View style={styles.profileScrollContent}>
-                  <View>
+                <>
+                  <View style={styles.profileCard}>
+                    <Text style={styles.profileText}>내 정보</Text>
                     <Text style={styles.profileValue}>{username}</Text>
-                    <Pressable 
-                      style={styles.changePasswordButton}
-                      onPress={() => setChangePasswordModalVisible(true)}
-                    >
-                      <Text style={styles.changePasswordButtonText}>비밀번호 변경</Text>
-                    </Pressable>
-                    <Pressable 
-                      style={styles.logoutButton}
-                      onPress={async () => {
-                        setLoggedIn(false)
-                        setUsername('')
-                        setPassword('')
-                        try {
-                          await AsyncStorage.removeItem('loginData')
-                        } catch (error) {
-                          console.error('Failed to remove login data:', error)
-                        }
-                      }}
-                    >
-                      <Text style={styles.logoutButtonText}>로그아웃</Text>
-                    </Pressable>
+                    <View style={styles.profileActions}>
+                      <Pressable
+                        style={styles.changePasswordButton}
+                        onPress={() => setChangePasswordModalVisible(true)}
+                      >
+                        <Text style={styles.changePasswordButtonText}>비밀번호 변경</Text>
+                      </Pressable>
+                      <Pressable
+                        style={styles.logoutButton}
+                        onPress={async () => {
+                          setLoggedIn(false)
+                          setUsername('')
+                          setPassword('')
+                          try {
+                            await AsyncStorage.removeItem('loginData')
+                          } catch (error) {
+                            console.error('Failed to remove login data:', error)
+                          }
+                        }}
+                      >
+                        <Text style={styles.logoutButtonText}>로그아웃</Text>
+                      </Pressable>
+                    </View>
                   </View>
-                  
+
                   <View style={styles.badgesSection}>
                     <Text style={styles.badgesTitle}>내 배지</Text>
                     <View style={styles.badgesGrid}>
                       {badges.map((badge) => (
-                        <Pressable 
-                          key={badge.id} 
+                        <Pressable
+                          key={badge.id}
                           style={styles.badgeItem}
                           onPress={() => {
                             setSelectedBadge(badge)
@@ -467,10 +656,7 @@ function App() {
                           }}
                         >
                           <View style={styles.badgeIcon}>
-                            <Image 
-                              source={badge.image} 
-                              style={styles.badgeImage}
-                            />
+                            <Image source={badge.image} style={styles.badgeImage} />
                           </View>
                           <View style={styles.badgeContent}>
                             <Text style={styles.badgeName}>{badge.name}</Text>
@@ -480,24 +666,39 @@ function App() {
                       ))}
                     </View>
                   </View>
-                </View>
+                </>
               )}
             </View>
-          )}
-  
-          <View style={styles.bottomNav}>
-            {NAV_ITEMS.map((item) => (
-              <Pressable
-                key={item}
-                style={styles.navItem}
-                onPress={() => setActiveTab(item)}
-              >
-                <Text style={[styles.navText, activeTab === item && styles.navTextActive]}>
-                  {item}
-                </Text>
-              </Pressable>
-            ))}
           </View>
+        )}
+
+        <View
+          style={[styles.bottomNav, { bottom: bottomNavBottom }]}
+          onLayout={(event) => {
+            const { width, height } = event.nativeEvent.layout
+            setBottomNavWidth(width)
+            setBottomNavHeight(height)
+          }}
+        >
+          {navIndicatorWidth > 0 ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.navIndicator,
+                {
+                  width: navIndicatorWidth,
+                  transform: [{ translateX: navIndicatorAnim }],
+                },
+              ]}
+            />
+          ) : null}
+
+          {NAV_ITEMS.map((item) => (
+            <Pressable key={item} style={styles.navItem} onPress={() => handleNavPress(item)}>
+              <Text style={[styles.navText, activeTab === item && styles.navTextActive]}>{item}</Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
       <StatusBar style="auto" />
@@ -614,7 +815,6 @@ function App() {
                 style={[styles.modalButton, styles.modalButtonSubmit]}
                 onPress={() => {
                   if (newPassword === confirmPassword) {
-                    Alert.alert('성공', '비밀번호가 변경되었습니다.')
                     setChangePasswordModalVisible(false)
                     setCurrentPassword('')
                     setNewPassword('')
@@ -685,20 +885,56 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   inputCard: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 12,
-    padding: 10,
+    position: 'relative',
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderRadius: 14,
+    padding: 12,
     gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.28)',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4,
   },
   input: {
     fontSize: 15,
     color: '#0f172a',
     paddingHorizontal: 6,
     paddingVertical: 8,
+    paddingRight: 92,
   },
   inputDivider: {
     height: 1,
     backgroundColor: '#cbd5e1',
+    marginRight: 84,
+  },
+  searchButton: {
+    position: 'absolute',
+    right: 10,
+    minWidth: 68,
+    height: SEARCH_BUTTON_HEIGHT,
+    borderRadius: 17,
+    backgroundColor: '#0f172a',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    shadowColor: '#020617',
+    shadowOpacity: 0.24,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
+  },
+  searchButtonFallback: {
+    top: 32,
+  },
+  searchButtonText: {
+    color: '#f8fafc',
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 4,
   },
   mapTypeRow: {
     flexDirection: 'row',
@@ -724,7 +960,6 @@ const styles = StyleSheet.create({
   focusButton: {
     position: 'absolute',
     right: 12,
-    bottom: 92,
     backgroundColor: '#0f172a',
     width: 44,
     height: 44,
@@ -735,13 +970,13 @@ const styles = StyleSheet.create({
   locationError: {
     position: 'absolute',
     left: 12,
-    bottom: 96,
     backgroundColor: 'rgba(15, 23, 42, 0.9)',
     color: '#f8fafc',
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: NAVBAR_VERTICAL_PADDING,
+    borderRadius: NAVBAR_RADIUS,
     fontSize: 12,
+    overflow: 'hidden',
   },
   locationDotOuter: {
     width: 18,
@@ -763,14 +998,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 12,
     right: 12,
-    bottom: 12,
     flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 14,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
+    borderRadius: NAVBAR_RADIUS,
+    paddingVertical: NAVBAR_VERTICAL_PADDING,
+    paddingHorizontal: NAVBAR_HORIZONTAL_PADDING,
     zIndex: 20,
     elevation: 20,
+    overflow: 'hidden',
+  },
+  navIndicator: {
+    position: 'absolute',
+    left: NAVBAR_HORIZONTAL_PADDING,
+    top: NAVBAR_VERTICAL_PADDING,
+    bottom: NAVBAR_VERTICAL_PADDING,
+    backgroundColor: '#0f172a',
+    borderRadius: 10,
   },
   navItem: {
     flex: 1,
@@ -778,6 +1021,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 8,
     borderRadius: 10,
+    zIndex: 1,
   },
   navText: {
     color: '#475569',
@@ -785,7 +1029,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   navTextActive: {
-    color: '#0f172a',
+    color: '#f8fafc',
   },
   collapsiblePanel: {
     position: 'absolute',
@@ -804,8 +1048,145 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
   },
+  navigationPanel: {
+    backgroundColor: 'transparent',
+    gap: 10,
+    flex: 1,
+  },
+  navigationInputCard: {
+    position: 'relative',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 10,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  navigationHintCard: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navigationHintContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    maxWidth: 320,
+  },
+  navigationHintText: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '600',
+    lineHeight: 19,
+    textAlign: 'center',
+  },
+  navigationHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  navigationPanelTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  navigationDistancePill: {
+    borderRadius: 999,
+    backgroundColor: '#e2e8f0',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  navigationDistancePillText: {
+    color: '#334155',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  navigationMetaRow: {
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  navigationMetaItem: {
+    flex: 1,
+  },
+  navigationMetaLabel: {
+    fontSize: 11,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  navigationMetaValue: {
+    marginTop: 2,
+    fontSize: 14,
+    color: '#0f172a',
+    fontWeight: '800',
+  },
+  navigationMetaDivider: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: '#e2e8f0',
+    marginHorizontal: 8,
+  },
+  navigationRouteCard: {
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 10,
+    gap: 6,
+  },
+  navigationRouteFrom: {
+    fontSize: 13,
+    color: '#0f172a',
+    fontWeight: '700',
+  },
+  navigationRouteLine: {
+    height: 1,
+    backgroundColor: '#cbd5e1',
+  },
+  navigationRouteTo: {
+    fontSize: 13,
+    color: '#0f172a',
+    fontWeight: '700',
+  },
+  navigationSteps: {
+    gap: 7,
+  },
+  navigationStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  navigationStepText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#334155',
+    fontWeight: '600',
+  },
+  navigationStartButton: {
+    marginTop: 2,
+    borderRadius: 12,
+    backgroundColor: '#0f172a',
+    height: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  navigationStartButtonText: {
+    color: '#f8fafc',
+    fontSize: 13,
+    fontWeight: '800',
+  },
   collapsibleContent: {
     padding: 12,
+    flex: 1,
   },
   transitButtonRow: {
     flexDirection: 'row',
@@ -870,52 +1251,61 @@ const styles = StyleSheet.create({
   profileContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#e2e8f0',
   },
   profileScrollContent: {
-    flex: 1,
     width: '100%',
-    alignItems: 'center',
+    maxWidth: 440,
     paddingVertical: 24,
     paddingHorizontal: 16,
+    gap: 14,
+  },
+  profileCard: {
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.28)',
   },
   profileText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 24,
-  },
-  profileValue: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 24,
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#94a3b8',
+    marginBottom: 8,
     textAlign: 'center',
   },
+  profileValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 14,
+    textAlign: 'center',
+  },
+  profileActions: {
+    gap: 8,
+  },
   changePasswordButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 16,
-    marginBottom: 12,
+    backgroundColor: '#0f172a',
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   changePasswordButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#f8fafc',
     textAlign: 'center',
   },
   loginButton: {
     backgroundColor: '#0f172a',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
+    height: 44,
     borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   loginButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#f8fafc',
     textAlign: 'center',
@@ -927,28 +1317,32 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   logoutButton: {
-    backgroundColor: '#e7592a',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 16,
+    backgroundColor: '#0f172a',
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   logoutButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#f8fafc',
     textAlign: 'center',
   },
   badgesSection: {
     width: '100%',
-    marginTop: 32,
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.28)',
+    alignItems: 'center'
   },
   badgesTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 16,
-    alignSelf: 'center',
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#94a3b8',
+    marginBottom: 12,
   },
   badgesGrid: {
     flexDirection: 'column',
@@ -959,8 +1353,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f8fafc',
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 12,
+    padding: 14,
     gap: 14,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -1000,113 +1394,114 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(15, 23, 42, 0.42)',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 16,
   },
   modalContainer: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 24,
-    width: '85%',
-    maxWidth: 320,
-    gap: 16,
+    borderRadius: 14,
+    padding: 18,
+    width: '100%',
+    maxWidth: 360,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.28)',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 6,
   },
   modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#0f172a',
-    textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   modalInput: {
     borderWidth: 1,
     borderColor: '#cbd5e1',
     borderRadius: 10,
+    backgroundColor: '#f8fafc',
     paddingHorizontal: 12,
     paddingVertical: 12,
-    fontSize: 15,
+    fontSize: 14,
     color: '#0f172a',
   },
   modalButtonRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
+    gap: 10,
+    marginTop: 4,
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalButtonCancel: {
-    backgroundColor: '#e2e8f0',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    minHeight: 44,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    minHeight: 44,
-    width: '100%',
+  },
+  modalButtonCancel: {
+    backgroundColor: '#e2e8f0',
   },
   modalButtonCancelText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#475569',
   },
   modalButtonSubmit: {
     backgroundColor: '#0f172a',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-    minHeight: 44,
-    width: '100%',
   },
   modalButtonSubmitText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#f8fafc',
   },
   badgeModalContainer: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
+    borderRadius: 14,
     padding: 60,
-    width: '85%',
-    maxWidth: 320,
+    width: '100%',
+    maxWidth: 360,
     alignItems: 'center',
     gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.28)',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 6,
   },
   badgeModalIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     backgroundColor: '#f1f5f9',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 6,
   },
   badgeModalIconText: {
     fontSize: 56,
   },
   badgeModalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#0f172a',
     textAlign: 'center',
   },
   badgeModalDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#475569',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
+    lineHeight: 18,
   },
   badgeModalCloseButton: {
-    marginTop: 12,
-    width: '70%',
+    marginTop: 4,
+    width: '100%',
     alignSelf: 'center',
   },
 })
