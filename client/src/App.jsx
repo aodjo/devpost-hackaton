@@ -4,7 +4,8 @@ import * as Location from 'expo-location'
 import { MaterialIcons } from '@expo/vector-icons'
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Platform, Pressable, StyleSheet, Text, TextInput, View, Alert, Animated } from 'react-native'
+import { Platform, Pressable, StyleSheet, Text, TextInput, View, Alert, Animated, Modal, Image } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import MapView, { Marker, UrlTile } from 'react-native-maps'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -83,6 +84,19 @@ function App() {
   const [destinationInput, setDestinationInput] = useState('')
   const [currentLocation, setCurrentLocation] = useState(null)
   const [locationError, setLocationError] = useState('')
+  const [loginModalVisible, setLoginModalVisible] = useState(false)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [loggedIn, setLoggedIn] = useState(false)
+  const [changePasswordModalVisible, setChangePasswordModalVisible] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [badgeModalVisible, setBadgeModalVisible] = useState(false)
+  const [selectedBadge, setSelectedBadge] = useState(null)
+  const [badges] = useState([
+    { id: 'test', name: 'test', image: { uri: '/vite.svg' }, description: '테스트 배지 (Vite SVG)' },
+  ])
   const [bottomNavWidth, setBottomNavWidth] = useState(0)
   const [bottomNavHeight, setBottomNavHeight] = useState(0)
   const [navIndicatorAnim] = useState(() => new Animated.Value(0))
@@ -151,6 +165,19 @@ function App() {
     let watchSubscription
     let mounted = true
 
+    const loadLoginData = async () => {
+      try {
+        const storedData = await AsyncStorage.getItem('loginData')
+        if (storedData && mounted) {
+          const parsedData = JSON.parse(storedData)
+          setUsername(parsedData.username)
+          setLoggedIn(parsedData.loggedIn)
+        }
+      } catch (error) {
+        console.error('Failed to load login data:', error)
+      }
+    }
+
     const startLocationTracking = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync()
       if (status !== 'granted') {
@@ -190,6 +217,7 @@ function App() {
       )
     }
 
+    loadLoginData()
     startLocationTracking().catch(() => {
       if (mounted) {
         setLocationError(LABELS.locationLoadFailed)
@@ -235,6 +263,8 @@ function App() {
   useEffect(() => {
     if (activeTab === LABELS.navigation) {
       originRef.current?.focus()
+    } else if (activeTab === LABELS.home) {
+      setMapType('roadmap')
     }
   }, [activeTab])
 
@@ -242,8 +272,6 @@ function App() {
     setActiveTab(item)
     if (item === LABELS.home || item === LABELS.navigation) {
       setMapType('roadmap')
-    } else if (item === LABELS.profile) {
-      Alert.alert('Profile', 'Profile tab selected')
     }
   }
 
@@ -301,166 +329,29 @@ function App() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.mapWrapper}>
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          mapType={Platform.OS === 'android' ? 'none' : 'standard'}
-          initialRegion={INITIAL_REGION}
-        >
-          <UrlTile urlTemplate={tileUrlTemplate} maximumZ={22} shouldReplaceMapContent />
-
-          {currentLocation ? (
-            <Marker coordinate={currentLocation} tracksViewChanges={false}>
-              <View style={styles.locationDotOuter}>
-                <View style={styles.locationDotInner} />
-              </View>
-            </Marker>
-          ) : null}
-        </MapView>
-
-        <View style={styles.topPanel}>
-          {isHomeTab ? (
-            <View style={[styles.inputCard, styles.homeInputCard]}>
-              <TextInput
-                style={styles.homeInput}
-                value={placeQuery}
-                onChangeText={setPlaceQuery}
-                placeholder={LABELS.placeSearchPlaceholder}
-                placeholderTextColor="#475569"
-                returnKeyType="search"
-                onSubmitEditing={handlePlaceSearch}
-              />
-              <Pressable
-                style={styles.homeSearchButton}
-                onPress={handlePlaceSearch}
-                accessibilityRole="button"
-                accessibilityLabel={LABELS.search}
-              >
-                <MaterialIcons name="search" size={20} color="#f8fafc" />
-              </Pressable>
-            </View>
-          ) : null}
-
-          <Animated.View style={[styles.mapTypeRow, mapTypeRowAnimatedStyle]}>
-            <Pressable
-              style={[
-                styles.mapTypeButton,
-                mapType === 'roadmap' && styles.mapTypeButtonActive,
-              ]}
-              onPress={() => setMapType('roadmap')}
-            >
-              <Text
-                style={[
-                  styles.mapTypeButtonText,
-                  mapType === 'roadmap' && styles.mapTypeButtonTextActive,
-                ]}
-              >
-                {LABELS.road}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[
-                styles.mapTypeButton,
-                mapType === 'satellite' && styles.mapTypeButtonActive,
-              ]}
-              onPress={() => setMapType('satellite')}
-            >
-              <Text
-                style={[
-                  styles.mapTypeButtonText,
-                  mapType === 'satellite' && styles.mapTypeButtonTextActive,
-                ]}
-              >
-                {LABELS.satellite}
-              </Text>
-            </Pressable>
-          </Animated.View>
-        </View>
-
-        <Animated.View
-          style={[
-            styles.collapsiblePanel,
-            {
-              transform: [
-                {
-                  translateY: collapseAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [600, 50],
-                  }),
-                },
-              ],
-            },
-          ]}
-          pointerEvents={isBottomPanelTab ? 'auto' : 'none'}
-        >
-          <View style={[styles.collapsibleContent, { paddingBottom: panelBottomClearance }]}>
-            {isTransitTab ? (
-              <>
-                <View style={styles.transitButtonRow}>
-                  <Pressable
-                    style={[
-                      styles.mapTypeButton,
-                      transitType === 'bus' && styles.mapTypeButtonActive,
-                    ]}
-                    onPress={() => setTransitType('bus')}
-                  >
-                    <Text
-                      style={[
-                        styles.mapTypeButtonText,
-                        transitType === 'bus' && styles.mapTypeButtonTextActive,
-                      ]}
-                    >
-                      {LABELS.bus}
-                    </Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={[
-                      styles.mapTypeButton,
-                      transitType === 'subway' && styles.mapTypeButtonActive,
-                    ]}
-                    onPress={() => setTransitType('subway')}
-                  >
-                    <Text
-                      style={[
-                        styles.mapTypeButtonText,
-                        transitType === 'subway' && styles.mapTypeButtonTextActive,
-                      ]}
-                    >
-                      {LABELS.subway}
-                    </Text>
-                  </Pressable>
+        {activeTab !== LABELS.profile && (
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            mapType={Platform.OS === 'android' ? 'none' : 'standard'}
+            initialRegion={INITIAL_REGION}
+          >
+            <UrlTile urlTemplate={tileUrlTemplate} maximumZ={22} shouldReplaceMapContent />
+            {currentLocation ? (
+              <Marker coordinate={currentLocation} tracksViewChanges={false}>
+                <View style={styles.locationDotOuter}>
+                  <View style={styles.locationDotInner} />
                 </View>
-
-                <View style={styles.transitCardsContainer}>
-                  {transitRoutes
-                    .filter((route) => route.type === transitType)
-                    .map((route) => (
-                      <View key={route.id} style={styles.transitCard}>
-                        <View style={styles.transitCardHeader}>
-                          <Text style={styles.routeName}>{route.routeName}</Text>
-                          <Text style={styles.arrivalTime}>{route.arrivalTime}</Text>
-                        </View>
-                        <View style={styles.transitCardBody}>
-                          <View style={styles.transitInfo}>
-                            <Text style={styles.transitLabel}>목적지 도착:</Text>
-                            <Text style={styles.transitValue}>{route.destinationArrival}</Text>
-                          </View>
-                          <View style={styles.transitInfo}>
-                            <Text style={styles.transitLabel}>경유:</Text>
-                            <Text style={styles.transitValue}>{route.stops}</Text>
-                          </View>
-                        </View>
-                      </View>
-                    ))}
-                </View>
-              </>
+              </Marker>
             ) : null}
+          </MapView>
+        )}
 
-            {isNavigationTab ? (
-              <View style={styles.navigationPanel}>
-                <View style={styles.navigationInputCard}>
+        {activeTab !== LABELS.profile ? (
+          <>
+            <View style={styles.topPanel}>
+              {isNavigationTab ? null : (
+                <View style={styles.inputCard}>
                   <TextInput
                     ref={originRef}
                     style={styles.input}
@@ -469,7 +360,13 @@ function App() {
                     placeholder={LABELS.originPlaceholder}
                     placeholderTextColor="#94a3b8"
                   />
-                  <View style={styles.inputDivider} />
+                  <View
+                    style={styles.inputDivider}
+                    onLayout={(event) => {
+                      const { y, height } = event.nativeEvent.layout
+                      setDividerCenterY(y + height / 2)
+                    }}
+                  />
                   <TextInput
                     style={styles.input}
                     value={destinationInput}
@@ -478,7 +375,12 @@ function App() {
                     placeholderTextColor="#94a3b8"
                   />
                   <Pressable
-                    style={[styles.searchButton, styles.searchButtonCentered]}
+                    style={[
+                      styles.searchButton,
+                      dividerCenterY == null
+                        ? styles.searchButtonFallback
+                        : { top: dividerCenterY - SEARCH_BUTTON_HEIGHT / 2 },
+                    ]}
                     onPress={handleSearch}
                     accessibilityRole="button"
                     accessibilityLabel={LABELS.search}
@@ -487,75 +389,296 @@ function App() {
                     <Text style={styles.searchButtonText}>{LABELS.search}</Text>
                   </Pressable>
                 </View>
+              )}
 
-                {hasNavigationInputs ? (
+              <Animated.View style={[styles.mapTypeRow, mapTypeRowAnimatedStyle]}>
+                <Pressable
+                  style={[styles.mapTypeButton, mapType === 'roadmap' && styles.mapTypeButtonActive]}
+                  onPress={() => setMapType('roadmap')}
+                >
+                  <Text
+                    style={[
+                      styles.mapTypeButtonText,
+                      mapType === 'roadmap' && styles.mapTypeButtonTextActive,
+                    ]}
+                  >
+                    {LABELS.road}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={[
+                    styles.mapTypeButton,
+                    mapType === 'satellite' && styles.mapTypeButtonActive,
+                  ]}
+                  onPress={() => setMapType('satellite')}
+                >
+                  <Text
+                    style={[
+                      styles.mapTypeButtonText,
+                      mapType === 'satellite' && styles.mapTypeButtonTextActive,
+                    ]}
+                  >
+                    {LABELS.satellite}
+                  </Text>
+                </Pressable>
+              </Animated.View>
+            </View>
+
+            <Animated.View
+              style={[
+                styles.collapsiblePanel,
+                {
+                  transform: [
+                    {
+                      translateY: collapseAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [600, 50],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+              pointerEvents={isBottomPanelTab ? 'auto' : 'none'}
+            >
+              <View style={[styles.collapsibleContent, { paddingBottom: panelBottomClearance }]}>
+                {isTransitTab ? (
                   <>
-                    <View style={styles.navigationHeaderRow}>
-                      <Text style={styles.navigationPanelTitle}>{LABELS.navigationPanelTitle}</Text>
-                      <View style={styles.navigationDistancePill}>
-                        <Text style={styles.navigationDistancePillText}>
-                          {LABELS.distance} {navigationSummary.distance}
+                    <View style={styles.transitButtonRow}>
+                      <Pressable
+                        style={[styles.mapTypeButton, transitType === 'bus' && styles.mapTypeButtonActive]}
+                        onPress={() => setTransitType('bus')}
+                      >
+                        <Text
+                          style={[
+                            styles.mapTypeButtonText,
+                            transitType === 'bus' && styles.mapTypeButtonTextActive,
+                          ]}
+                        >
+                          {LABELS.bus}
                         </Text>
-                      </View>
+                      </Pressable>
+                      <Pressable
+                        style={[
+                          styles.mapTypeButton,
+                          transitType === 'subway' && styles.mapTypeButtonActive,
+                        ]}
+                        onPress={() => setTransitType('subway')}
+                      >
+                        <Text
+                          style={[
+                            styles.mapTypeButtonText,
+                            transitType === 'subway' && styles.mapTypeButtonTextActive,
+                          ]}
+                        >
+                          {LABELS.subway}
+                        </Text>
+                      </Pressable>
                     </View>
 
-                    <View style={styles.navigationMetaRow}>
-                      <View style={styles.navigationMetaItem}>
-                        <Text style={styles.navigationMetaLabel}>{LABELS.eta}</Text>
-                        <Text style={styles.navigationMetaValue}>{navigationSummary.eta}</Text>
-                      </View>
-                      <View style={styles.navigationMetaDivider} />
-                      <View style={styles.navigationMetaItem}>
-                        <Text style={styles.navigationMetaLabel}>{LABELS.duration}</Text>
-                        <Text style={styles.navigationMetaValue}>{navigationSummary.duration}</Text>
-                      </View>
+                    <View style={styles.transitCardsContainer}>
+                      {transitRoutes
+                        .filter((route) => route.type === transitType)
+                        .map((route) => (
+                          <View key={route.id} style={styles.transitCard}>
+                            <View style={styles.transitCardHeader}>
+                              <Text style={styles.routeName}>{route.routeName}</Text>
+                              <Text style={styles.arrivalTime}>{route.arrivalTime}</Text>
+                            </View>
+                            <View style={styles.transitCardBody}>
+                              <View style={styles.transitInfo}>
+                                <Text style={styles.transitLabel}>목적지 도착:</Text>
+                                <Text style={styles.transitValue}>{route.destinationArrival}</Text>
+                              </View>
+                              <View style={styles.transitInfo}>
+                                <Text style={styles.transitLabel}>경유:</Text>
+                                <Text style={styles.transitValue}>{route.stops}</Text>
+                              </View>
+                            </View>
+                          </View>
+                        ))}
                     </View>
-
-                    <View style={styles.navigationRouteCard}>
-                      <Text style={styles.navigationRouteFrom}>{navigationSummary.from}</Text>
-                      <View style={styles.navigationRouteLine} />
-                      <Text style={styles.navigationRouteTo}>{navigationSummary.to}</Text>
-                    </View>
-
-                    <View style={styles.navigationSteps}>
-                      {NAVIGATION_STEPS.map((step) => (
-                        <View key={step.id} style={styles.navigationStepRow}>
-                          <MaterialIcons name={step.icon} size={17} color="#334155" />
-                          <Text style={styles.navigationStepText}>{step.text}</Text>
-                        </View>
-                      ))}
-                    </View>
-
-                    <Pressable style={styles.navigationStartButton}>
-                      <MaterialIcons name="navigation" size={18} color="#f8fafc" />
-                      <Text style={styles.navigationStartButtonText}>{LABELS.startGuidance}</Text>
-                    </Pressable>
                   </>
-                ) : (
-                  <View style={styles.navigationHintCard}>
-                    <View style={styles.navigationHintContent}>
-                      <FontAwesome5 name="route" size={44} color="#334155" />
-                      <Text style={styles.navigationHintText}>{LABELS.routeHint}</Text>
+                ) : null}
+
+                {isNavigationTab ? (
+                  <View style={styles.navigationPanel}>
+                    <View style={styles.navigationInputCard}>
+                      <TextInput
+                        ref={originRef}
+                        style={styles.input}
+                        value={originInput}
+                        onChangeText={setOriginInput}
+                        placeholder={LABELS.originPlaceholder}
+                        placeholderTextColor="#94a3b8"
+                      />
+                      <View
+                        style={styles.inputDivider}
+                        onLayout={(event) => {
+                          const { y, height } = event.nativeEvent.layout
+                          setDividerCenterY(y + height / 2)
+                        }}
+                      />
+                      <TextInput
+                        style={styles.input}
+                        value={destinationInput}
+                        onChangeText={setDestinationInput}
+                        placeholder={LABELS.destinationPlaceholder}
+                        placeholderTextColor="#94a3b8"
+                      />
+                      <Pressable
+                        style={[
+                          styles.searchButton,
+                          dividerCenterY == null
+                            ? styles.searchButtonFallback
+                            : { top: dividerCenterY - SEARCH_BUTTON_HEIGHT / 2 },
+                        ]}
+                        onPress={handleSearch}
+                        accessibilityRole="button"
+                        accessibilityLabel={LABELS.search}
+                      >
+                        <MaterialIcons name="search" size={18} color="#f8fafc" />
+                        <Text style={styles.searchButtonText}>{LABELS.search}</Text>
+                      </Pressable>
+                    </View>
+
+                    {hasNavigationInputs ? (
+                      <>
+                        <View style={styles.navigationHeaderRow}>
+                          <Text style={styles.navigationPanelTitle}>{LABELS.navigationPanelTitle}</Text>
+                          <View style={styles.navigationDistancePill}>
+                            <Text style={styles.navigationDistancePillText}>
+                              {LABELS.distance} {navigationSummary.distance}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.navigationMetaRow}>
+                          <View style={styles.navigationMetaItem}>
+                            <Text style={styles.navigationMetaLabel}>{LABELS.eta}</Text>
+                            <Text style={styles.navigationMetaValue}>{navigationSummary.eta}</Text>
+                          </View>
+                          <View style={styles.navigationMetaDivider} />
+                          <View style={styles.navigationMetaItem}>
+                            <Text style={styles.navigationMetaLabel}>{LABELS.duration}</Text>
+                            <Text style={styles.navigationMetaValue}>{navigationSummary.duration}</Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.navigationRouteCard}>
+                          <Text style={styles.navigationRouteFrom}>{navigationSummary.from}</Text>
+                          <View style={styles.navigationRouteLine} />
+                          <Text style={styles.navigationRouteTo}>{navigationSummary.to}</Text>
+                        </View>
+
+                        <View style={styles.navigationSteps}>
+                          {NAVIGATION_STEPS.map((step) => (
+                            <View key={step.id} style={styles.navigationStepRow}>
+                              <MaterialIcons name={step.icon} size={17} color="#334155" />
+                              <Text style={styles.navigationStepText}>{step.text}</Text>
+                            </View>
+                          ))}
+                        </View>
+
+                        <Pressable style={styles.navigationStartButton}>
+                          <MaterialIcons name="navigation" size={18} color="#f8fafc" />
+                          <Text style={styles.navigationStartButtonText}>{LABELS.startGuidance}</Text>
+                        </Pressable>
+                      </>
+                    ) : (
+                      <View style={styles.navigationHintCard}>
+                        <View style={styles.navigationHintContent}>
+                          <FontAwesome5 name="route" size={44} color="#334155" />
+                          <Text style={styles.navigationHintText}>{LABELS.routeHint}</Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                ) : null}
+              </View>
+            </Animated.View>
+
+            <Pressable
+              style={[styles.focusButton, { bottom: focusButtonBottom }]}
+              onPress={focusMyLocation}
+              accessibilityRole="button"
+              accessibilityLabel={LABELS.focusMyLocation}
+            >
+              <MaterialIcons name="gps-fixed" size={22} color="#f8fafc" />
+            </Pressable>
+
+            {locationError ? (
+              <Text style={[styles.locationError, { bottom: locationErrorBottom }]}>{locationError}</Text>
+            ) : null}
+          </>
+        ) : (
+          <View style={styles.profileContainer}>
+            <View style={styles.profileScrollContent}>
+              {!loggedIn ? (
+                <View style={styles.profileCard}>
+                  <Text style={styles.profileText}>로그인해서 배지 얻기</Text>
+                  <Pressable style={styles.loginButton} onPress={() => setLoginModalVisible(true)}>
+                    <Text style={styles.loginButtonText}>로그인</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.profileCard}>
+                    <Text style={styles.profileText}>내 정보</Text>
+                    <Text style={styles.profileValue}>{username}</Text>
+                    <View style={styles.profileActions}>
+                      <Pressable
+                        style={styles.changePasswordButton}
+                        onPress={() => setChangePasswordModalVisible(true)}
+                      >
+                        <Text style={styles.changePasswordButtonText}>비밀번호 변경</Text>
+                      </Pressable>
+                      <Pressable
+                        style={styles.logoutButton}
+                        onPress={async () => {
+                          setLoggedIn(false)
+                          setUsername('')
+                          setPassword('')
+                          try {
+                            await AsyncStorage.removeItem('loginData')
+                          } catch (error) {
+                            console.error('Failed to remove login data:', error)
+                          }
+                        }}
+                      >
+                        <Text style={styles.logoutButtonText}>로그아웃</Text>
+                      </Pressable>
                     </View>
                   </View>
-                )}
-              </View>
-            ) : null}
+
+                  <View style={styles.badgesSection}>
+                    <Text style={styles.badgesTitle}>내 배지</Text>
+                    <View style={styles.badgesGrid}>
+                      {badges.map((badge) => (
+                        <Pressable
+                          key={badge.id}
+                          style={styles.badgeItem}
+                          onPress={() => {
+                            setSelectedBadge(badge)
+                            setBadgeModalVisible(true)
+                          }}
+                        >
+                          <View style={styles.badgeIcon}>
+                            <Image source={badge.image} style={styles.badgeImage} />
+                          </View>
+                          <View style={styles.badgeContent}>
+                            <Text style={styles.badgeName}>{badge.name}</Text>
+                            <Text style={styles.badgeDescription}>{badge.description}</Text>
+                          </View>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                </>
+              )}
+            </View>
           </View>
-        </Animated.View>
-
-        <Pressable
-          style={[styles.focusButton, { bottom: focusButtonBottom }]}
-          onPress={focusMyLocation}
-          accessibilityRole="button"
-          accessibilityLabel={LABELS.focusMyLocation}
-        >
-          <MaterialIcons name="gps-fixed" size={22} color="#f8fafc" />
-        </Pressable>
-
-        {locationError ? (
-          <Text style={[styles.locationError, { bottom: locationErrorBottom }]}>{locationError}</Text>
-        ) : null}
+        )}
 
         <View
           style={[styles.bottomNav, { bottom: bottomNavBottom }]}
@@ -579,20 +702,172 @@ function App() {
           ) : null}
 
           {NAV_ITEMS.map((item) => (
-            <Pressable
-              key={item}
-              style={styles.navItem}
-              onPress={() => handleNavPress(item)}
-            >
-              <Text style={[styles.navText, activeTab === item && styles.navTextActive]}>
-                {item}
-              </Text>
+            <Pressable key={item} style={styles.navItem} onPress={() => handleNavPress(item)}>
+              <Text style={[styles.navText, activeTab === item && styles.navTextActive]}>{item}</Text>
             </Pressable>
           ))}
         </View>
       </View>
 
       <StatusBar style="auto" />
+
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={loginModalVisible}
+        onRequestClose={() => setLoginModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>로그인</Text>
+            
+            <TextInput
+              style={styles.modalInput}
+              placeholder="사용자명"
+              placeholderTextColor="#94a3b8"
+              value={username}
+              onChangeText={setUsername}
+            />
+            
+            <TextInput
+              style={styles.modalInput}
+              placeholder="비밀번호"
+              placeholderTextColor="#94a3b8"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={true}
+            />
+            
+            <View style={styles.modalButtonRow}>
+              <Pressable 
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => {
+                  setLoginModalVisible(false)
+                  setUsername('')
+                  setPassword('')
+                }}
+              >
+                <Text style={styles.modalButtonCancelText}>취소</Text>
+              </Pressable>
+              
+              <Pressable 
+                style={[styles.modalButton, styles.modalButtonSubmit]}
+                onPress={async () => {
+                  setLoggedIn(true)
+                  setLoginModalVisible(false)
+                  try {
+                    await AsyncStorage.setItem('loginData', JSON.stringify({ username, loggedIn: true }))
+                  } catch (error) {
+                    console.error('Failed to save login data:', error)
+                  }
+                }}
+              >
+                <Text style={styles.modalButtonSubmitText}>로그인</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={changePasswordModalVisible}
+        onRequestClose={() => setChangePasswordModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>비밀번호 변경</Text>
+            
+            <TextInput
+              style={styles.modalInput}
+              placeholder="현재 비밀번호"
+              placeholderTextColor="#94a3b8"
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              secureTextEntry={true}
+            />
+            
+            <TextInput
+              style={styles.modalInput}
+              placeholder="새 비밀번호"
+              placeholderTextColor="#94a3b8"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry={true}
+            />
+            
+            <TextInput
+              style={styles.modalInput}
+              placeholder="새 비밀번호 확인"
+              placeholderTextColor="#94a3b8"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={true}
+            />
+            
+            <View style={styles.modalButtonRow}>
+              <Pressable 
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => {
+                  setChangePasswordModalVisible(false)
+                  setCurrentPassword('')
+                  setNewPassword('')
+                  setConfirmPassword('')
+                }}
+              >
+                <Text style={styles.modalButtonCancelText}>취소</Text>
+              </Pressable>
+              
+              <Pressable 
+                style={[styles.modalButton, styles.modalButtonSubmit]}
+                onPress={() => {
+                  if (newPassword === confirmPassword) {
+                    setChangePasswordModalVisible(false)
+                    setCurrentPassword('')
+                    setNewPassword('')
+                    setConfirmPassword('')
+                  } else {
+                    Alert.alert('오류', '새 비밀번호가 일치하지 않습니다.')
+                  }
+                }}
+              >
+                <Text style={styles.modalButtonSubmitText}>변경</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={badgeModalVisible}
+        onRequestClose={() => setBadgeModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.badgeModalContainer}>
+            {selectedBadge && (
+              <>
+                <View style={styles.badgeModalIcon}>
+                  <Image 
+                    source={selectedBadge.image} 
+                    style={styles.badgeModalImage}
+                  />
+                </View>
+                <Text style={styles.badgeModalTitle}>{selectedBadge.name}</Text>
+                <Text style={styles.badgeModalDescription}>{selectedBadge.description}</Text>
+                <Pressable 
+                  style={[styles.modalButton, styles.modalButtonSubmit, styles.badgeModalCloseButton]}
+                  onPress={() => setBadgeModalVisible(false)}
+                >
+                  <Text style={styles.modalButtonSubmitText}>닫기</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -1010,6 +1285,262 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#0f172a',
     fontWeight: '600',
+  },
+  profileContainer: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#e2e8f0',
+  },
+  profileScrollContent: {
+    width: '100%',
+    maxWidth: 440,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    gap: 14,
+  },
+  profileCard: {
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.28)',
+  },
+  profileText: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#94a3b8',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  profileValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 14,
+    textAlign: 'center',
+  },
+  profileActions: {
+    gap: 8,
+  },
+  changePasswordButton: {
+    backgroundColor: '#0f172a',
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  changePasswordButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#f8fafc',
+    textAlign: 'center',
+  },
+  loginButton: {
+    backgroundColor: '#0f172a',
+    height: 44,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loginButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#f8fafc',
+    textAlign: 'center',
+  },
+  loggedInUsername: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#475569',
+    marginBottom: 24,
+  },
+  logoutButton: {
+    backgroundColor: '#0f172a',
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#f8fafc',
+    textAlign: 'center',
+  },
+  badgesSection: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.28)',
+    alignItems: 'center'
+  },
+  badgesTitle: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#94a3b8',
+    marginBottom: 12,
+  },
+  badgesGrid: {
+    flexDirection: 'column',
+    gap: 12,
+    width: '100%',
+  },
+  badgeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 14,
+    gap: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  badgeIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  badgeContent: {
+    flex: 1,
+    gap: 4,
+  },
+  badgeName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  badgeDescription: {
+    fontSize: 12,
+    color: '#64748b',
+    lineHeight: 16,
+  },
+  badgeImage: {
+    width: 48,
+    height: 48,
+    resizeMode: 'contain',
+  },
+  badgeModalImage: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.42)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  modalContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 18,
+    width: '100%',
+    maxWidth: 360,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.28)',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 6,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 4,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 10,
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#0f172a',
+  },
+  modalButtonRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  modalButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonCancel: {
+    backgroundColor: '#e2e8f0',
+  },
+  modalButtonCancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  modalButtonSubmit: {
+    backgroundColor: '#0f172a',
+  },
+  modalButtonSubmitText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#f8fafc',
+  },
+  badgeModalContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 60,
+    width: '100%',
+    maxWidth: 360,
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.28)',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 6,
+  },
+  badgeModalIcon: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  badgeModalIconText: {
+    fontSize: 56,
+  },
+  badgeModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+    textAlign: 'center',
+  },
+  badgeModalDescription: {
+    fontSize: 13,
+    color: '#475569',
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  badgeModalCloseButton: {
+    marginTop: 4,
+    width: '100%',
+    alignSelf: 'center',
   },
 })
 
