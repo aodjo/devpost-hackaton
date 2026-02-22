@@ -1347,6 +1347,11 @@ export const styles = StyleSheet.create({
   // Navigation Autocomplete styles
   inputWithAutocomplete: {
     position: 'relative',
+    zIndex: 1,
+  },
+  inputWithAutocompleteActive: {
+    zIndex: 20,
+    elevation: 20,
   },
   navAutocompleteDropdown: {
     position: 'absolute',
@@ -1365,6 +1370,7 @@ export const styles = StyleSheet.create({
     elevation: 8,
     zIndex: 100,
     maxHeight: 180,
+    overflow: 'hidden',
   },
   navAutocompleteItem: {
     flexDirection: 'row',
@@ -1377,11 +1383,13 @@ export const styles = StyleSheet.create({
   },
   navAutocompleteTextContainer: {
     flex: 1,
+    minWidth: 0,
   },
   navAutocompleteMainText: {
     fontSize: 13,
     fontWeight: '600',
     color: '#0f172a',
+    flexShrink: 1,
   },
   navAutocompleteSecondaryText: {
     fontSize: 11,
@@ -1391,6 +1399,7 @@ export const styles = StyleSheet.create({
   currentLocationButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
     gap: 6,
     paddingVertical: 8,
     paddingHorizontal: 10,

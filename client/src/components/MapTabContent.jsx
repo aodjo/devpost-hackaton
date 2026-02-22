@@ -319,7 +319,16 @@ function MapTabContent({
   const keyboardOffset = keyboardInset > 0 ? -Math.min(keyboardInset, maxKeyboardOffset) : 0
 
   // 내비게이션 힌트 표시 여부
-  const showNavigationHint = isNavigationTab && !hasNavigationInputs
+  const hasOriginAutocomplete = originAutocomplete.length > 0
+  const hasDestinationAutocomplete = destinationAutocomplete.length > 0
+  const hasNavigationTextInput = originInput.trim().length > 0 || destinationInput.trim().length > 0
+  const isEditingNavigationInput = activeNavInput === 'origin' || activeNavInput === 'destination'
+  const hasOpenAutocomplete = hasOriginAutocomplete || hasDestinationAutocomplete
+  const showNavigationHint = isNavigationTab
+    && !hasNavigationInputs
+    && !isEditingNavigationInput
+    && !hasNavigationTextInput
+    && !hasOpenAutocomplete
 
   // 내비게이션 단계
   const navigationSteps = [
@@ -648,7 +657,12 @@ function MapTabContent({
             <View style={styles.navigationPanel}>
               <Text style={styles.panelTitle}>{t('panel.navigation')}</Text>
               <View style={styles.navigationInputCard}>
-                <View style={styles.inputWithAutocomplete}>
+                <View
+                  style={[
+                    styles.inputWithAutocomplete,
+                    activeNavInput === 'origin' && styles.inputWithAutocompleteActive,
+                  ]}
+                >
                   <TextInput
                     ref={originRef}
                     style={styles.input}
@@ -659,7 +673,7 @@ function MapTabContent({
                     placeholderTextColor="#94a3b8"
                   />
                   {activeNavInput === 'origin' && !originInput.trim() ? (
-                    <Pressable style={styles.currentLocationButton} onPress={onUseCurrentLocation}>
+                    <Pressable style={styles.currentLocationButton} onPress={onUseCurrentLocation} hitSlop={8}>
                       <MaterialIcons name="my-location" size={16} color="#3b82f6" />
                       <Text style={styles.currentLocationText}>{t('navigation.useCurrentLocation')}</Text>
                     </Pressable>
@@ -674,8 +688,12 @@ function MapTabContent({
                         >
                           <MaterialIcons name="place" size={16} color="#64748b" />
                           <View style={styles.navAutocompleteTextContainer}>
-                            <Text style={styles.navAutocompleteMainText}>{prediction.main_text}</Text>
-                            <Text style={styles.navAutocompleteSecondaryText} numberOfLines={1}>{prediction.secondary_text}</Text>
+                            <Text style={styles.navAutocompleteMainText} numberOfLines={1} ellipsizeMode="tail">
+                              {prediction.main_text}
+                            </Text>
+                            <Text style={styles.navAutocompleteSecondaryText} numberOfLines={1} ellipsizeMode="tail">
+                              {prediction.secondary_text}
+                            </Text>
                           </View>
                         </Pressable>
                       ))}
@@ -689,7 +707,12 @@ function MapTabContent({
                     setDividerCenterY(y + height / 2)
                   }}
                 />
-                <View style={styles.inputWithAutocomplete}>
+                <View
+                  style={[
+                    styles.inputWithAutocomplete,
+                    activeNavInput === 'destination' && styles.inputWithAutocompleteActive,
+                  ]}
+                >
                   <TextInput
                     style={styles.input}
                     value={destinationInput}
@@ -708,8 +731,12 @@ function MapTabContent({
                         >
                           <MaterialIcons name="place" size={16} color="#64748b" />
                           <View style={styles.navAutocompleteTextContainer}>
-                            <Text style={styles.navAutocompleteMainText}>{prediction.main_text}</Text>
-                            <Text style={styles.navAutocompleteSecondaryText} numberOfLines={1}>{prediction.secondary_text}</Text>
+                            <Text style={styles.navAutocompleteMainText} numberOfLines={1} ellipsizeMode="tail">
+                              {prediction.main_text}
+                            </Text>
+                            <Text style={styles.navAutocompleteSecondaryText} numberOfLines={1} ellipsizeMode="tail">
+                              {prediction.secondary_text}
+                            </Text>
                           </View>
                         </Pressable>
                       ))}

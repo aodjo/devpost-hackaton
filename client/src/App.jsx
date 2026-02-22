@@ -232,6 +232,38 @@ function App() {
     )
   }
 
+  const sanitizeNavPredictions = useCallback((predictions = []) => {
+    const predictionList = Array.isArray(predictions) ? predictions : []
+    const blockedLabels = new Set(
+      [
+        t('search.originPlaceholder'),
+        t('search.destinationPlaceholder'),
+        '출발지',
+        '목적지',
+      ]
+        .filter((label) => typeof label === 'string' && label.trim())
+        .map((label) => label.trim().toLowerCase()),
+    )
+
+    const seen = new Set()
+    return predictionList.filter((prediction) => {
+      const mainText = `${prediction?.main_text ?? ''}`.trim()
+      if (!mainText) return false
+
+      if (blockedLabels.has(mainText.toLowerCase())) {
+        return false
+      }
+
+      const placeId = `${prediction?.place_id ?? ''}`.trim()
+      const dedupeKey = placeId || `${mainText}|${`${prediction?.secondary_text ?? ''}`.trim()}`
+      if (seen.has(dedupeKey)) {
+        return false
+      }
+      seen.add(dedupeKey)
+      return true
+    })
+  }, [t])
+
   const fetchNavAutocomplete = useCallback(async (query, type) => {
     if (!query.trim()) {
       if (type === 'origin') setOriginAutocomplete([])
@@ -247,19 +279,19 @@ function App() {
         `${API_BASE_URL}/places/autocomplete?input=${encodeURIComponent(query)}${locationParam}&language=ko`
       )
       const data = await response.json()
-      if (data.predictions) {
-        if (type === 'origin') setOriginAutocomplete(data.predictions)
-        else setDestinationAutocomplete(data.predictions)
-      }
+      const predictions = sanitizeNavPredictions(data.predictions)
+      if (type === 'origin') setOriginAutocomplete(predictions)
+      else setDestinationAutocomplete(predictions)
     } catch {
       if (type === 'origin') setOriginAutocomplete([])
       else setDestinationAutocomplete([])
     }
-  }, [currentLocation])
+  }, [currentLocation, sanitizeNavPredictions])
 
   const handleOriginInputChange = useCallback((text) => {
     setOriginInput(text)
     setOriginPlace(null)
+    setDestinationAutocomplete([])
     setActiveNavInput('origin')
 
     if (originAutocompleteRef.current) {
@@ -279,6 +311,7 @@ function App() {
   const handleDestinationInputChange = useCallback((text) => {
     setDestinationInput(text)
     setDestinationPlace(null)
+    setOriginAutocomplete([])
     setActiveNavInput('destination')
 
     if (destinationAutocompleteRef.current) {
@@ -330,16 +363,46 @@ function App() {
     }
   }, [])
 
-  const handleUseCurrentLocation = useCallback(() => {
-    if (!currentLocation) return
-    setOriginInput(t('navigation.currentLocation'))
-    setOriginPlace({
-      name: t('navigation.currentLocation'),
-      latitude: currentLocation.latitude,
-      longitude: currentLocation.longitude,
-    })
-    setOriginAutocomplete([])
-    setActiveNavInput(null)
+  const handleUseCurrentLocation = useCallback(async () => {
+    try {
+      let resolvedLocation = currentLocation
+
+      if (!resolvedLocation) {
+        const permission = await Location.getForegroundPermissionsAsync()
+        let status = permission.status
+
+        if (status !== 'granted') {
+          const requested = await Location.requestForegroundPermissionsAsync()
+          status = requested.status
+        }
+
+        if (status !== 'granted') {
+          Alert.alert(t('location.permissionRequired'))
+          return
+        }
+
+        const position = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        })
+
+        resolvedLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        }
+        setCurrentLocation(resolvedLocation)
+      }
+
+      setOriginInput(t('navigation.currentLocation'))
+      setOriginPlace({
+        name: t('navigation.currentLocation'),
+        latitude: resolvedLocation.latitude,
+        longitude: resolvedLocation.longitude,
+      })
+      setOriginAutocomplete([])
+      setActiveNavInput(null)
+    } catch {
+      Alert.alert(t('navigation.error'), t('location.loadFailed'))
+    }
   }, [currentLocation, t])
 
   const fetchDirections = useCallback(async () => {
