@@ -98,12 +98,12 @@ function ObstacleGalleryPanel({ styles, obstacles, isLoading, onClose, panelBott
 
               <Text style={styles.obstacleInfoName}>{obs.name}</Text>
 
-              {obs.description ? (
-                <Text style={styles.obstacleInfoDescription}>{obs.description}</Text>
-              ) : null}
-
               {obs.imageUrl ? (
                 <Image source={{ uri: obs.imageUrl }} style={styles.obstacleInfoImage} />
+              ) : null}
+
+              {obs.description ? (
+                <Text style={styles.obstacleInfoDescription}>{obs.description}</Text>
               ) : null}
 
               {obs.uploaderName ? (

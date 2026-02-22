@@ -216,8 +216,7 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#0f172a',
-    flex: 1,
-    marginRight: 8,
+    marginBottom: 12,
   },
   obstacleInfoCloseButton: {
     padding: 4,
@@ -226,13 +225,13 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     color: '#475569',
     lineHeight: 20,
+    marginTop: 10,
     marginBottom: 12,
   },
   obstacleInfoImage: {
     width: '100%',
-    height: 160,
+    height: 180,
     borderRadius: 12,
-    marginBottom: 12,
     backgroundColor: '#e2e8f0',
   },
   obstacleInfoMeta: {
